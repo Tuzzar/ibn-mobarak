@@ -51,9 +51,10 @@ export function Footer() {
               </h4>
               <ul className="space-y-2.5 text-sm text-foreground/80">
                 <li><Link to="/products" className="hover:text-primary transition-colors">Shop All</Link></li>
-                <li><Link to="/about" className="hover:text-primary transition-colors">About</Link></li>
+                <li><Link to="/categories" className="hover:text-primary transition-colors">Categories</Link></li>
+                <li><Link to="/wishlist" className="hover:text-primary transition-colors">Wishlist</Link></li>
+                <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
                 <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
-                <li><Link to="/cart" className="hover:text-primary transition-colors">Cart</Link></li>
               </ul>
             </div>
 
@@ -117,11 +118,21 @@ export function Footer() {
 
       {/* Bottom strip */}
       <div className="border-t border-border/70 py-5 px-6">
-        <div className="container mx-auto max-w-7xl flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-between text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-2">
-            <span aria-hidden className="w-1 h-1 rounded-full bg-gold" />
-            © {new Date().getFullYear()} Ibn Mobarak Art Gallery. All rights reserved.
-          </span>
+        <div className="container mx-auto max-w-7xl flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 justify-center sm:justify-start">
+            <span className="inline-flex items-center gap-2">
+              <span aria-hidden className="w-1 h-1 rounded-full bg-gold" />
+              © {new Date().getFullYear()} Ibn Mobarak Art Gallery
+            </span>
+            <span className="hidden sm:inline text-border">·</span>
+            <Link to="/shipping-policy" className="hover:text-primary transition-colors">
+              ডেলিভারি চার্জ ও পলিসি
+            </Link>
+            <span className="text-border">·</span>
+            <Link to="/terms" className="hover:text-primary transition-colors">
+              শর্তাবলী ও নিয়ম
+            </Link>
+          </div>
           <span className="inline-flex items-center gap-1">
             Designed and developed by
             <a

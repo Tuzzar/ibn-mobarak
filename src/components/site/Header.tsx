@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Menu, X, Search, Home, Store, Info, Mail, MessageCircle, Flame, Gift, Phone } from "lucide-react";
+import { ShoppingBag, Menu, X, Search, Home, Store, Info, Mail, MessageCircle, Flame, Gift, Phone, Heart } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { CartDrawer } from "./CartDrawer";
+import { WishlistDrawer } from "./WishlistDrawer";
 import { Sheet, SheetContent, SheetPortal, SheetOverlay } from "@/components/ui/sheet";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
@@ -28,21 +30,24 @@ const drawerNav = [
 
 const TOP_ANNOUNCEMENTS = [
   "🎨 ১০০% অথেনটিক আর্ট মেটেরিয়ালস ও ক্যালিগ্রাফি সাপ্লাইজ",
-  "🚚 ঢাকা ও সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি (২-৪ দিন)",
-  "⭐ ২,০০০ টাকার বেশি অর্ডারে ফ্রি ডেলিভারি সুবিধা!",
+  "🚚 সারা বাংলাদেশে ক্যাশ অন ডেলিভারি: ঢাকা ৳৮০ | ঢাকার বাইরে ৳১৩০",
+  "📦 ১ কেজি পর্যন্ত ফিক্সড চার্জ, পরবর্তী প্রতি কেজিতে ৳২০ যোগ হবে",
   "💬 সরাসরি অর্ডার ও কাস্টমাইজেশনের জন্য WhatsApp এ নক দিন",
 ] as const;
 
 export function Header() {
   const brand = useBrandLogo();
   const { count } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const { whatsappHref, phone, phoneHref } = useContactInfo();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastScrollYRef = useRef(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,7 +58,24 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      const lastY = lastScrollYRef.current;
+      setScrolled(currentY > 12);
+
+      // Smart reverse-scroll headroom behavior
+      if (currentY <= 50) {
+        setVisible(true);
+      } else if (currentY > lastY + 5 && currentY > 80) {
+        // Scrolling down -> hide header
+        setVisible(false);
+      } else if (currentY < lastY - 5) {
+        // Scrolling up -> reveal header instantly
+        setVisible(true);
+      }
+      lastScrollYRef.current = currentY;
+    };
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -82,10 +104,11 @@ export function Header() {
   return (
     <header
       className={cn(
-        "relative lg:sticky lg:top-0 z-50 transition-all duration-300 ease-out",
+        "sticky top-0 z-50 transition-transform duration-300 ease-out",
+        visible ? "translate-y-0" : "-translate-y-full",
         scrolled
-          ? "backdrop-blur-md bg-background/90 border-b border-border/60 shadow-[0_4px_20px_-12px_oklch(0.22_0.04_155/0.18)]"
-          : "backdrop-blur-sm bg-background/70 border-b border-transparent",
+          ? "backdrop-blur-md bg-background/95 border-b border-border/60 shadow-[0_4px_20px_-12px_oklch(0.22_0.04_155/0.18)]"
+          : "backdrop-blur-sm bg-background/85 border-b border-transparent",
       )}
     >
       {/* Unified Luxury Announcement & Utility Strip */}
@@ -105,9 +128,12 @@ export function Header() {
 
           {/* Right contact links (Desktop & Tablet) */}
           <div className="hidden md:flex items-center gap-4 lg:gap-5 text-[11px] tracking-[0.14em] uppercase shrink-0 text-slate-300">
-            <span className="hidden lg:inline text-gold/90 text-[10px] tracking-[0.18em] font-medium">
-              Free delivery over ৳2000
-            </span>
+            <Link
+              to="/shipping-policy"
+              className="hidden lg:inline text-gold/90 text-[10px] tracking-[0.14em] font-medium hover:text-gold transition-colors"
+            >
+              ডেলিভারি: ঢাকা ৳৮০ · বাইরে ৳১৩০
+            </Link>
             <span className="hidden lg:inline text-slate-700">|</span>
             <a
               href={phoneHref}
@@ -232,6 +258,24 @@ export function Header() {
                 <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
               </Button>
 
+              {/* Wishlist — medallion button with count badge */}
+              <WishlistDrawer>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Open wishlist"
+                  className="group relative size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold hover:bg-background"
+                >
+                  <Heart className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full inline-flex items-center justify-center ring-2 ring-background">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Button>
+              </WishlistDrawer>
+
               {/* Cart — medallion button with gold count badge */}
               <CartDrawer>
                 <Button
@@ -251,7 +295,25 @@ export function Header() {
               </CartDrawer>
             </div>
 
-            {/* Mobile: cart medallion (visible so users don't need to open drawer) */}
+            {/* Mobile: Wishlist medallion */}
+            <WishlistDrawer>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Open wishlist"
+                className="relative size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
+              >
+                <Heart className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full inline-flex items-center justify-center ring-2 ring-background">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Button>
+            </WishlistDrawer>
+
+            {/* Mobile: cart medallion */}
             <CartDrawer>
               <Button
                 type="button"
@@ -405,13 +467,24 @@ export function Header() {
                     <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
                   </Link>
                   <Link
-                    to="/products"
+                    to="/categories"
                     onClick={() => setOpen(false)}
                     className="group flex items-center justify-between py-2 text-[12px] uppercase tracking-[0.22em] text-foreground/75 hover:text-primary transition-colors"
                   >
                     <span className="flex items-center gap-3">
                       <Gift className="w-3.5 h-3.5 text-primary" strokeWidth={1.6} />
-                      Categories
+                      Categories (ক্যাটাগরি)
+                    </span>
+                    <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
+                  </Link>
+                  <Link
+                    to="/wishlist"
+                    onClick={() => setOpen(false)}
+                    className="group flex items-center justify-between py-2 text-[12px] uppercase tracking-[0.22em] text-foreground/75 hover:text-primary transition-colors"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Heart className="w-3.5 h-3.5 text-primary" strokeWidth={1.6} />
+                      Wishlist ({wishlistCount})
                     </span>
                     <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
                   </Link>

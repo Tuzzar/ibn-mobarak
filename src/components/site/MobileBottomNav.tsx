@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Store, ShoppingBag, Search, X, Menu } from "lucide-react";
+import { Home, Store, ShoppingBag, Search, X, LayoutGrid } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -152,19 +152,22 @@ export function MobileBottomNav() {
               </button>
             </li>
 
-            {/* Menu */}
+            {/* Categories */}
             <li className="flex">
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent("almiftah:open-menu"))}
-                aria-label="Open menu"
-                className={itemBase}
+              <Link
+                to="/categories"
+                className={cn(itemBase, isActive("/categories") ? "text-primary" : "text-foreground/55")}
               >
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-foreground/60">
-                  <Menu className="w-[19px] h-[19px]" strokeWidth={1.6} />
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200",
+                    isActive("/categories") ? "bg-primary/10 ring-1 ring-gold/40" : "",
+                  )}
+                >
+                  <LayoutGrid className="w-[19px] h-[19px]" strokeWidth={isActive("/categories") ? 2.1 : 1.6} />
                 </span>
-                <Label>Menu</Label>
-              </button>
+                <Label active={isActive("/categories")}>Categories</Label>
+              </Link>
             </li>
           </ul>
         </div>

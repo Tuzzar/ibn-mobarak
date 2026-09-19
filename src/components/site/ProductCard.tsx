@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { memo, useCallback, useState } from "react";
-import { ShoppingBag, Zap } from "lucide-react";
+import { memo, useCallback, useState, useMemo } from "react";
+import { ShoppingBag, Zap, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { formatBDT, useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
+import { cn } from "@/lib/utils";
 import { OptimizedImage } from "./OptimizedImage";
 import { Spinner } from "./Spinner";
 import { parseSizes, totalSizeStock } from "@/lib/sizes";
@@ -24,9 +26,12 @@ type Props = {
 
 function ProductCardBase({ product, priority = false }: Props) {
   const { add } = useCart();
+  const { isFavorite, toggleFavorite } = useWishlist();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
   const [buying, setBuying] = useState(false);
+
+  const isFav = isFavorite(product.id);
 
   const sizes = parseSizes(product.weight_variants);
   const hasSizes = sizes.length > 0;
@@ -120,10 +125,38 @@ function ProductCardBase({ product, priority = false }: Props) {
         )}
 
         {hasDiscount && (
-          <span className="absolute top-2.5 right-2.5 text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent text-accent-foreground px-2.5 py-1 rounded-full shadow-xs">
+          <span className="absolute top-2.5 left-2.5 text-[10px] md:text-xs font-bold uppercase tracking-wider bg-accent text-accent-foreground px-2 py-0.5 rounded-full shadow-xs">
             -{discountPct}%
           </span>
         )}
+
+        {/* Favorite Heart Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavorite({
+              id: product.id,
+              name: product.name,
+              price: effectivePrice,
+              original_price: hasDiscount ? product.price : null,
+              image_url: product.image_url,
+              slug: product.slug,
+              category: product.category,
+              inStock: !soldOut,
+            });
+          }}
+          aria-label={isFav ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় রাখুন"}
+          className={cn(
+            "absolute top-2.5 right-2.5 z-10 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm cursor-pointer",
+            isFav
+              ? "bg-rose-500 text-white shadow-rose-500/30 scale-105"
+              : "bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-rose-500 hover:bg-background active:scale-95",
+          )}
+        >
+          <Heart className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isFav && "fill-current")} />
+        </button>
       </div>
 
       {/* Body */}

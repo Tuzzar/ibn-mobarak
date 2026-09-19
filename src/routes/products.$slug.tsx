@@ -19,9 +19,11 @@ import {
   MessageCircle,
   ZoomIn,
   X,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, formatBDT } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { OptimizedImage } from "@/components/site/OptimizedImage";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Spinner } from "@/components/site/Spinner";
@@ -131,6 +133,9 @@ function ProductDetail() {
   const sizeStockTotal = totalSizeStock(sizes);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  const { isFavorite, toggleFavorite } = useWishlist();
+  const isFav = product ? isFavorite(product.id) : false;
 
   useEffect(() => {
     if (sizes.length > 0) {
@@ -485,6 +490,32 @@ function ProductDetail() {
                 {buying ? <Spinner className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                 {oos ? "স্টক আউট" : needsSize ? "সাইজ সিলেক্ট করুন" : buying ? "অর্ডার হচ্ছে…" : "সরাসরি অর্ডার করুন"}
               </button>
+
+              {/* Wishlist Toggle Button */}
+              <button
+                type="button"
+                onClick={() =>
+                  toggleFavorite({
+                    id: product.id,
+                    name: product.name,
+                    price: activePrice,
+                    original_price: originalPriceToDisplay,
+                    image_url: activeImage || product.image_url,
+                    slug: product.slug,
+                    category: product.category,
+                    inStock: !oos,
+                  })
+                }
+                className={`w-12 h-12 rounded-xl border flex items-center justify-center transition shrink-0 cursor-pointer ${
+                  isFav
+                    ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                    : "bg-card border-border hover:border-rose-400 hover:text-rose-500 text-muted-foreground"
+                }`}
+                aria-label={isFav ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় রাখুন"}
+                title={isFav ? "পছন্দের তালিকা থেকে সরান" : "পছন্দের তালিকায় রাখুন"}
+              >
+                <Heart className={`w-5 h-5 ${isFav ? "fill-current" : ""}`} />
+              </button>
             </div>
 
             {/* Direct WhatsApp Consultation CTA */}
@@ -514,7 +545,7 @@ function ProductDetail() {
             <div className="flex items-center gap-2.5">
               <Truck className="w-4 h-4 text-gold shrink-0" />
               <span>
-                <strong>সারা দেশে ক্যাশ অন ডেলিভারি:</strong> ঢাকা সিটিতে (৳৮০), ঢাকার বাইরে (৳১৩০)। <strong>৳২,০০০+ অর্ডারে ফ্রি ডেলিভারি!</strong>
+                <strong>সারা দেশে হোম ডেলিভারি:</strong> ঢাকা ৳৮০, ঢাকার বাইরে ৳১৩০ (১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০)।
               </span>
             </div>
             <div className="flex items-center gap-2.5">
