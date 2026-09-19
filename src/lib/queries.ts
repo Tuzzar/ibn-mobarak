@@ -182,6 +182,7 @@ export const productsCategoriesOptions = () =>
   });
 
 import { parseSearchTokens, scoreProductRelevance } from "./search";
+import { getSubcategoryBySlug } from "@/data/artCategories";
 
 export interface ProductsFilterParams {
   category?: string | null;
@@ -202,7 +203,7 @@ export const productsInfiniteOptions = (
       ? params
       : { category: params as string | null, subcategory: legacySubcategory };
 
-  const {
+  let {
     category,
     subcategory,
     search,
@@ -211,6 +212,20 @@ export const productsInfiniteOptions = (
     inStockOnly,
     sort = "featured",
   } = filter;
+
+  // Auto-resolve if subcategory slug was passed as category (e.g. category="acrylic-colour")
+  if (category && category !== "all" && (!subcategory || subcategory === "all")) {
+    const subMatch = getSubcategoryBySlug(category);
+    if (subMatch) {
+      category = subMatch.parent.slug;
+      subcategory = subMatch.sub.slug;
+    }
+  } else if ((!category || category === "all") && subcategory && subcategory !== "all") {
+    const subMatch = getSubcategoryBySlug(subcategory);
+    if (subMatch) {
+      category = subMatch.parent.slug;
+    }
+  }
 
   const cleanSearch = (search || "").trim();
 
@@ -371,7 +386,21 @@ export const productsSearchCountOptions = (params: ProductsFilterParams) =>
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     queryFn: async () => {
-      const { category, subcategory, search, minPrice, maxPrice, inStockOnly } = params;
+      let { category, subcategory, search, minPrice, maxPrice, inStockOnly } = params;
+
+      if (category && category !== "all" && (!subcategory || subcategory === "all")) {
+        const subMatch = getSubcategoryBySlug(category);
+        if (subMatch) {
+          category = subMatch.parent.slug;
+          subcategory = subMatch.sub.slug;
+        }
+      } else if ((!category || category === "all") && subcategory && subcategory !== "all") {
+        const subMatch = getSubcategoryBySlug(subcategory);
+        if (subMatch) {
+          category = subMatch.parent.slug;
+        }
+      }
+
       const cleanSearch = (search || "").trim();
       let q = supabase.from("products").select("id", { count: "exact", head: true });
 

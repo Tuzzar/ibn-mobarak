@@ -489,7 +489,7 @@ function SubCategoryCard({
   return (
     <Link
       to="/products"
-      search={{ category: sub.slug, q: "" }}
+      search={{ category: parent.slug, subcategory: sub.slug, q: "" }}
       className={cn(
         "group relative flex flex-col items-center justify-between p-2 rounded-2xl border transition-all duration-150 cursor-pointer",
         "bg-background hover:border-gold hover:shadow-md active:scale-[0.96]",

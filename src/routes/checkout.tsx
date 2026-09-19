@@ -180,7 +180,7 @@ function Checkout() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-16 overflow-x-hidden">
+    <div className="w-full mx-auto px-4 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-16 overflow-x-hidden box-border">
       {/* Top Breadcrumb & Header */}
       <div className="mb-5 sm:mb-8">
         <Link
@@ -281,9 +281,9 @@ function Checkout() {
 
       <form onSubmit={onSubmit} className="grid lg:grid-cols-12 gap-6 lg:gap-10">
         {/* Left Form Column */}
-        <div className="lg:col-span-7 space-y-5">
+        <div className="lg:col-span-7 space-y-5 min-w-0">
           {/* 1. Address Section */}
-          <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm">
+          <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm overflow-hidden">
             <h2
               className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 mb-4 sm:mb-6"
               style={{ fontFamily: "'Tiro Bangla', serif" }}
@@ -319,7 +319,7 @@ function Checkout() {
                   <select
                     value={form.district}
                     onChange={(e) => handleDistrictChange(e.target.value)}
-                    className="w-full h-11 sm:h-12 px-3.5 pr-9 rounded-xl border border-input bg-background text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors appearance-none cursor-pointer"
+                    className="w-full max-w-full h-11 sm:h-12 px-3.5 pr-9 rounded-xl border border-input bg-background text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gold focus:border-gold transition-colors appearance-none cursor-pointer box-border"
                   >
                     {BD_DISTRICTS.map((d) => (
                       <option key={d} value={d}>
@@ -348,7 +348,7 @@ function Checkout() {
                         className={cn(
                           "flex items-center justify-between gap-2 px-3 py-3 border rounded-xl cursor-pointer transition active:scale-[0.99] overflow-hidden",
                           active
-                            ? "border-gold bg-primary/5 ring-1 ring-gold shadow-sm"
+                            ? "border-gold bg-primary/5 ring-1 ring-inset ring-gold shadow-sm"
                             : "border-input bg-background hover:border-gold/50",
                         )}
                       >
@@ -411,7 +411,7 @@ function Checkout() {
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   placeholder="প্যাকেজিং বা ডেলিভারি নিয়ে কোনো বিশেষ নির্দেশনা থাকলে লিখুন..."
                   rows={2}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors text-base sm:text-sm placeholder:text-muted-foreground/60"
+                  className="w-full max-w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gold focus:border-gold transition-colors text-base sm:text-sm placeholder:text-muted-foreground/60 box-border"
                 />
               </div>
             </div>
@@ -465,7 +465,7 @@ function Checkout() {
         </div>
 
         {/* Right Desktop Order Summary Column */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 min-w-0">
           <aside className="bg-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gold/40 shadow-sm lg:sticky lg:top-24 overflow-hidden">
             <span className="block text-[10px] uppercase tracking-[0.24em] text-gold mb-1 font-semibold">
               অর্ডার বিবরণী
@@ -574,7 +574,7 @@ function Field({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full h-11 sm:h-12 px-3.5 rounded-xl border border-input bg-background text-foreground text-base sm:text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors"
+        className="w-full max-w-full h-11 sm:h-12 px-3.5 rounded-xl border border-input bg-background text-foreground text-base sm:text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gold focus:border-gold transition-colors box-border"
       />
     </div>
   );

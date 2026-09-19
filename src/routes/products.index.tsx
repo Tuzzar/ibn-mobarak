@@ -34,7 +34,7 @@ import {
   productsInfiniteOptions,
   productsSearchCountOptions,
 } from "@/lib/queries";
-import { MASTER_ART_CATEGORIES } from "@/data/artCategories";
+import { MASTER_ART_CATEGORIES, getSubcategoryBySlug } from "@/data/artCategories";
 import { formatBDT } from "@/lib/cart";
 
 const sortOptions = ["featured", "newest", "name-asc", "price-asc", "price-desc"] as const;
@@ -54,15 +54,31 @@ type ProductsSearch = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/products/")({
   validateSearch: (search?: Record<string, unknown>) => searchSchema.parse(search ?? {}),
-  loaderDeps: ({ search }) => ({
-    category: search.category ?? null,
-    subcategory: search.subcategory ?? null,
-    q: search.q ?? "",
-    minPrice: search.minPrice ?? null,
-    maxPrice: search.maxPrice ?? null,
-    inStock: search.inStock ?? false,
-    sort: (search.sort ?? "featured") as SortKey,
-  }),
+  loaderDeps: ({ search }) => {
+    let cat = search.category ?? null;
+    let sub = search.subcategory ?? null;
+    if (cat && !sub) {
+      const match = getSubcategoryBySlug(cat);
+      if (match) {
+        cat = match.parent.slug;
+        sub = match.sub.slug;
+      }
+    } else if (!cat && sub) {
+      const match = getSubcategoryBySlug(sub);
+      if (match) {
+        cat = match.parent.slug;
+      }
+    }
+    return {
+      category: cat,
+      subcategory: sub,
+      q: search.q ?? "",
+      minPrice: search.minPrice ?? null,
+      maxPrice: search.maxPrice ?? null,
+      inStock: search.inStock ?? false,
+      sort: (search.sort ?? "featured") as SortKey,
+    };
+  },
   loader: ({ context, deps }) => {
     context.queryClient.prefetchInfiniteQuery(
       productsInfiniteOptions({
@@ -111,8 +127,28 @@ export const Route = createFileRoute("/products/")({
 
 function Products() {
   const search = Route.useSearch();
-  const category = search.category ?? null;
-  const subcategory = search.subcategory ?? null;
+  const rawCategory = search.category ?? null;
+  const rawSubcategory = search.subcategory ?? null;
+
+  // Auto-resolve if subcategory slug was passed in category (e.g. /products?category=acrylic-colour)
+  const { category, subcategory } = useMemo(() => {
+    let cat = rawCategory;
+    let sub = rawSubcategory;
+    if (cat && !sub) {
+      const match = getSubcategoryBySlug(cat);
+      if (match) {
+        cat = match.parent.slug;
+        sub = match.sub.slug;
+      }
+    } else if (!cat && sub) {
+      const match = getSubcategoryBySlug(sub);
+      if (match) {
+        cat = match.parent.slug;
+      }
+    }
+    return { category: cat, subcategory: sub };
+  }, [rawCategory, rawSubcategory]);
+
   const q = search.q ?? "";
   const minPrice = search.minPrice ?? null;
   const maxPrice = search.maxPrice ?? null;
@@ -235,6 +271,7 @@ function Products() {
     navigate({
       search: (prev: ProductsSearch) => ({
         ...prev,
+        category: category,
         subcategory: s,
       }),
     });
