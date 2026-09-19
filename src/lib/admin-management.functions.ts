@@ -3,7 +3,7 @@
 // Uses the service-role admin client (loaded lazily inside handlers) to
 // access auth.admin APIs and manage user_roles rows.
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireExternalSupabaseAuth as requireSupabaseAuth } from "@/integrations/supabase/external-auth-middleware";
 
 type Role = "administrator" | "admin" | "moderator";
 const ROLES: Role[] = ["administrator", "admin", "moderator"];
