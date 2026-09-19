@@ -4,6 +4,7 @@ export type SubCategory = {
   bengali: string;
   slug: string;
   description?: string;
+  image?: string;
 };
 
 export type MasterCategory = {
@@ -207,6 +208,88 @@ export const MASTER_ART_CATEGORIES: MasterCategory[] = [
     ],
   },
 ];
+
+export const SUBCATEGORY_IMAGES: Record<string, string> = {
+  // Paints
+  "acrylic-colour": "https://artlabbd.com/wp-content/uploads/2024/08/Mont-Marte-Acrylic-Colour-Pastel-Colours-48pc-x-36ml-MSCP4836_V01-L3_c57a7353-cd68-4bef-b13f-f4b931e964d3-600x600.jpg",
+  "oil-colour": "https://cdn.ahbab.art/public/product/vae1jvqczO1ooXopyCz.jpg",
+  "water-colour": "https://cdn.ahbab.art/public/product/JJ-TAilksaG3SHBSiuI.jpg",
+  "gouache-colour": "https://cdn.ahbab.art/public/product/8vocNF5LDzT5G3niHhl.webp",
+  "poster-fabric-colour": "https://cdn.ahbab.art/public/product/SwEf9cc74D-QFGqg6Mt.webp",
+  "glass-ceramic-colour": "https://cdn.ahbab.art/public/product/AwpZG-77hf80RRTzMUo.jpg",
+  "metallic-neon-paints": "https://cdn.ahbab.art/public/product/2EDbraUJ9wUy-P53kru.jpg",
+  "acrylic-markers": "https://cdn.ahbab.art/public/product/8vocNF5LDzT5G3niHhl.webp",
+
+  // Brushes
+  "round-brushes": "https://cdn.ahbab.art/public/product/c2bjgG7aKw-GlXJyNh3.webp",
+  "flat-brushes": "https://cdn.ahbab.art/public/hero-banners/brushes-tools-category-1783332996730.webp",
+  "filbert-fan-brushes": "https://cdn.ahbab.art/public/product/gblzhIrGPY77WqDx4Lp.jpg",
+  "detail-liner-brushes": "https://cdn.ahbab.art/public/product/gblzhIrGPY77WqDx4Lp.jpg",
+  "wash-mop-brushes": "https://cdn.ahbab.art/public/hero-banners/brushes-tools-category-1783332996730.webp",
+  "brush-sets": "https://cdn.ahbab.art/public/product/c2bjgG7aKw-GlXJyNh3.webp",
+  "palette-knives": "https://cdn.ahbab.art/public/product/8uiXE_4GDebeYTFJsS6.jpg",
+  "palettes-washers": "https://cdn.ahbab.art/public/product/_Dnlv2E4kSZDdD8YF1f.jpg",
+
+  // Canvas
+  "stretched-canvas": "https://cdn.ahbab.art/public/product/T0m2d9TPSxjC-OYL--6.webp",
+  "canvas-panels": "https://cdn.ahbab.art/public/category/ZYRFvjVPIyIcN_W1ZlU.webp",
+  "round-oval-canvas": "https://cdn.ahbab.art/public/product/Xr6-Vw0WaBv_LBApll2.jpg",
+  "canvas-pads-rolls": "https://cdn.ahbab.art/public/product/tGDMEx0pgXXFmKBA42J.jpg",
+  "mini-canvas-easel": "https://cdn.ahbab.art/public/product/ufuOwRtax2MpTy8syDC.jpg",
+
+  // Paper & Sketchbooks
+  "sketchbooks": "https://cdn.ahbab.art/public/product/5ut3M9WLOmMTpdL6KJG.jpg",
+  "watercolor-paper": "https://cdn.ahbab.art/public/category/x3jbS6CLrEZ9VKVlhZS.webp",
+  "acrylic-paper": "https://cdn.ahbab.art/public/product/tGDMEx0pgXXFmKBA42J.jpg",
+  "mixed-media-paper": "https://cdn.ahbab.art/public/product/5ut3M9WLOmMTpdL6KJG.jpg",
+  "black-paper": "https://cdn.ahbab.art/public/category/x3jbS6CLrEZ9VKVlhZS.webp",
+  "tracing-grid-paper": "https://cdn.ahbab.art/public/product/LLT6RjaVeUIOSPL8cUT.jpg",
+
+  // Drawing
+  "graphite-charcoal": "https://cdn.ahbab.art/public/product/LLT6RjaVeUIOSPL8cUT.jpg",
+  "colored-pencils": "https://cdn.ahbab.art/public/product/ni0XaUYq_n7GgIIarTV.jpg",
+  "art-markers": "https://cdn.ahbab.art/public/product/8vocNF5LDzT5G3niHhl.webp",
+  "fineliners-pens": "https://cdn.ahbab.art/public/product/zFTjrq6_cbdYDl61V59.webp",
+  "erasers-blenders": "https://cdn.ahbab.art/public/product/3qLgy3RAdxmS5ZhzUFq.webp",
+
+  // Calligraphy
+  "calligraphy-qalam": "https://cdn.ahbab.art/public/category/5Kbqgyn0yUk16ISWgcq.webp",
+  "calligraphy-nibs": "https://cdn.ahbab.art/public/product/wOL4BazAdYnxbwJDkdl.webp",
+  "calligraphy-inks": "https://cdn.ahbab.art/public/product/khsbUgXfA27lhegzVbM.webp",
+  "calligraphy-paper": "https://cdn.ahbab.art/public/category/x3jbS6CLrEZ9VKVlhZS.webp",
+  "lika-dawat-accessories": "https://cdn.ahbab.art/public/product/B3sCHNk6ftztlnwx4la.jpg",
+
+  // Mediums
+  "gesso-primers": "https://artlabbd.com/wp-content/uploads/2024/02/71cYTy7u-cL._AC_SX679_-600x600.jpg",
+  "gloss-matte-varnish": "https://cdn.ahbab.art/public/product/SwEf9cc74D-QFGqg6Mt.webp",
+  "pouring-medium": "https://cdn.ahbab.art/public/product/BmY4NDTJyh9GNilYN9S.jpg",
+  "texture-modeling-paste": "https://cdn.ahbab.art/public/product/F2zQZ7oiROfSlNMCfGn.jpg",
+  "linseed-turpentine": "https://cdn.ahbab.art/public/product/BmY4NDTJyh9GNilYN9S.jpg",
+  "resin-hardener": "https://cdn.ahbab.art/public/product/sHyiinsKXmfgVQ8qqwT.webp",
+
+  // Easels
+  "tabletop-easels": "https://artlabbd.com/wp-content/uploads/2024/02/71cYTy7u-cL._AC_SX679_-600x600.jpg",
+  "studio-easels": "https://cdn.ahbab.art/public/product/x9aZ8Ha45_5S0EHock3.jpg",
+  "tripod-field-easels": "https://cdn.ahbab.art/public/product/ufuOwRtax2MpTy8syDC.jpg",
+  "display-stands": "https://artlabbd.com/wp-content/uploads/2024/02/71cYTy7u-cL._AC_SX679_-600x600.jpg",
+
+  // Lippan Craft & Clay
+  "lippan-mirrors": "https://cdn.ahbab.art/public/product/sHyiinsKXmfgVQ8qqwT.webp",
+  "air-dry-clay": "https://cdn.ahbab.art/public/product/8uiXE_4GDebeYTFJsS6.jpg",
+  "clay-tools-molds": "https://cdn.ahbab.art/public/product/F2zQZ7oiROfSlNMCfGn.jpg",
+  "decoupage-craft": "https://cdn.ahbab.art/public/product/2EDbraUJ9wUy-P53kru.jpg",
+  "mod-podge-glue": "https://cdn.ahbab.art/public/product/M_aQH5fyaoFQ9dUmu6J.jpg",
+
+  // Combos
+  "beginner-art-kits": "https://artlabbd.com/wp-content/uploads/2024/08/428672548_708861584788268_7215090560402851456_n-600x600.jpg",
+  "calligraphy-master-sets": "https://cdn.ahbab.art/public/product/B3sCHNk6ftztlnwx4la.jpg",
+  "sketching-kits": "https://cdn.ahbab.art/public/product/LLT6RjaVeUIOSPL8cUT.jpg",
+  "student-combo-packs": "https://artlabbd.com/wp-content/uploads/2024/08/428672548_708861584788268_7215090560402851456_n-600x600.jpg",
+};
+
+export function getSubcategoryImage(slug: string, fallback?: string): string {
+  return SUBCATEGORY_IMAGES[slug] || fallback || "https://artlabbd.com/wp-content/uploads/2024/08/Mont-Marte-Acrylic-Colour-Pastel-Colours-48pc-x-36ml-MSCP4836_V01-L3_c57a7353-cd68-4bef-b13f-f4b931e964d3-600x600.jpg";
+}
 
 // Helper functions
 export function getCategoryBySlug(slug: string): MasterCategory | undefined {
