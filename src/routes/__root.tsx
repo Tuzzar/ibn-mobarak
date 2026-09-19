@@ -126,18 +126,19 @@ function Layout() {
   const isAdmin = path.startsWith("/admin");
   const isLanding = path.startsWith("/landing");
   const isCategories = path === "/categories";
+  const isCheckout = path.startsWith("/checkout") || path.startsWith("/order-success");
   const isBare = isAdmin || isLanding;
   return (
     <>
       <SiteLoader />
       <TopProgressBar />
       {!isBare && <Header />}
-      <main className={isBare ? "" : isCategories ? "overflow-hidden" : "min-h-[60vh] pb-20 lg:pb-0 animate-in fade-in duration-300"}>
+      <main className={isBare ? "" : isCategories ? "overflow-hidden" : isCheckout ? "min-h-[70vh] pb-8 lg:pb-16" : "min-h-[60vh] pb-20 lg:pb-0 animate-in fade-in duration-300"}>
         <Outlet />
       </main>
       {!isBare && !isCategories && <Footer />}
-      {!isBare && <WhatsAppButton />}
-      {!isBare && <MobileBottomNav />}
+      {!isBare && !isCheckout && <WhatsAppButton />}
+      {!isBare && !isCheckout && <MobileBottomNav />}
       {!isBare && <MetaPixel />}
       <Toaster position="top-center" richColors />
     </>

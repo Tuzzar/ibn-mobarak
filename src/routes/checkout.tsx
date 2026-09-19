@@ -3,18 +3,28 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Truck, ShieldCheck, Banknote, CheckCircle2, Gift } from "lucide-react";
+import {
+  Truck,
+  ShieldCheck,
+  Banknote,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+  ShoppingBag,
+} from "lucide-react";
 
 import { useCart, formatBDT } from "@/lib/cart";
 import { placeOrder } from "@/lib/orders.functions";
 import { Spinner } from "@/components/site/Spinner";
 import { useIncompleteOrderTracker } from "@/hooks/use-incomplete-order";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
   head: () => ({
     meta: [
-      { title: "Checkout — Ibn Mobarak Art Gallery" },
+      { title: "অর্ডার নিশ্চিত করুন (Checkout) — Ibn Mobarak Art Gallery" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -33,7 +43,6 @@ const schema = z.object({
 
 type DeliveryZone = "inside" | "outside";
 const DELIVERY_FEES: Record<DeliveryZone, number> = { inside: 80, outside: 130 };
-const FREE_DELIVERY_THRESHOLD = 2000;
 
 export const BD_DISTRICTS = [
   "ঢাকা (Dhaka)", "চট্টগ্রাম (Chattogram)", "সিলেট (Sylhet)", "রাজশাহী (Rajshahi)",
@@ -60,6 +69,7 @@ function Checkout() {
   const placeOrderFn = useServerFn(placeOrder);
   const [submitting, setSubmitting] = useState(false);
   const [zone, setZone] = useState<DeliveryZone>("inside");
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [form, setForm] = useState({
     customer_name: "",
     customer_phone: "",
@@ -68,9 +78,7 @@ function Checkout() {
     notes: "",
   });
 
-  const isFreeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD;
-  const baseDeliveryFee = DELIVERY_FEES[zone];
-  const deliveryFee = isFreeDelivery ? 0 : baseDeliveryFee;
+  const deliveryFee = DELIVERY_FEES[zone];
   const total = subtotal + deliveryFee;
 
   const handleDistrictChange = (selected: string) => {
@@ -102,13 +110,20 @@ function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-6 py-24 text-center">
-        <span className="block text-[11px] uppercase tracking-[0.32em] text-gold mb-3">চেকআউট</span>
-        <h1 className="font-display text-3xl text-foreground">আপনার কার্ট এখনো খালি</h1>
-        <div className="mt-4 mx-auto h-px w-16 bg-gold/60" />
+      <div className="container mx-auto px-4 sm:px-6 py-20 text-center max-w-lg">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <ShoppingBag className="w-8 h-8 text-gold" />
+        </div>
+        <span className="block text-[11px] uppercase tracking-[0.32em] text-gold mb-2 font-semibold">চেকআউট</span>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground" style={{ fontFamily: "'Tiro Bangla', serif" }}>
+          আপনার কার্ট এখনো খালি
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+          অর্ডার করার জন্য অনুগ্রহ করে শপ থেকে পছন্দের আর্ট সামগ্রী বা ক্যালিগ্রাফি কার্টে যোগ করুন।
+        </p>
         <Link
           to="/products"
-          className="mt-6 inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full text-sm font-medium hover:bg-gold hover:text-gold-foreground transition-colors"
+          className="mt-6 inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full text-xs sm:text-sm font-semibold hover:bg-gold hover:text-gold-foreground transition-colors shadow-md"
         >
           কালেকশন দেখুন
         </Link>
@@ -165,36 +180,118 @@ function Checkout() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 max-w-6xl py-12 md:py-16">
-      <header className="mb-8 md:mb-10">
-        <span className="block text-[11px] uppercase tracking-[0.32em] text-gold mb-2 font-semibold">
-          নিরাপদ চেকআউট
-        </span>
-        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-foreground">
-          অর্ডার সম্পন্ন করুন
-        </h1>
-        <div className="mt-3 h-px w-16 bg-gold/60" />
-      </header>
-
-      {/* Free delivery banner if qualified */}
-      {isFreeDelivery && (
-        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-sm font-medium">
-          <Gift className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-          <span>
-            🎉 অভিনন্দন! আপনার কার্ট ৳২,০০০ অতিক্রম করায় <strong>ফ্রি ডেলিভারি</strong> সক্রিয় হয়েছে!
+    <div className="container mx-auto px-3.5 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-28 lg:pb-16">
+      {/* Top Breadcrumb & Header */}
+      <div className="mb-5 sm:mb-8">
+        <Link
+          to="/cart"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors mb-3"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>কার্টে ফিরে যান</span>
+        </Link>
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5">
+          <div>
+            <span className="block text-[10px] uppercase tracking-[0.24em] text-gold font-semibold">
+              নিরাপদ চেকআউট
+            </span>
+            <h1
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground"
+              style={{ fontFamily: "'Tiro Bangla', serif" }}
+            >
+              অর্ডার সম্পন্ন করুন
+            </h1>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-3 py-1 rounded-full w-fit">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span>ক্যাশ অন ডেলিভারি (হোম ডেলিভারি)</span>
           </span>
         </div>
-      )}
+      </div>
 
-      <form onSubmit={onSubmit} className="grid lg:grid-cols-12 gap-8 lg:gap-12">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-card border border-border/80 rounded-3xl p-6 sm:p-8 shadow-sm">
-            <h2 className="font-display text-xl sm:text-2xl text-primary flex items-center gap-2 mb-6">
+      {/* MOBILE ONLY: Collapsible Order Summary Accordion at Top */}
+      <div className="lg:hidden mb-5 rounded-2xl border border-gold/30 bg-section-a/60 overflow-hidden shadow-sm">
+        <button
+          type="button"
+          onClick={() => setMobileSummaryOpen(!mobileSummaryOpen)}
+          className="w-full flex items-center justify-between p-3.5 text-left text-xs font-semibold text-foreground bg-section-a/80 hover:bg-section-a transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-gold" />
+            <span>অর্ডার সংক্ষেপ ({items.length}টি পণ্য)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-primary text-sm">{formatBDT(total)}</span>
+            {mobileSummaryOpen ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+        </button>
+
+        {mobileSummaryOpen && (
+          <div className="p-3.5 border-t border-border/60 bg-background/80 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <ul className="divide-y divide-border/50 max-h-56 overflow-y-auto pr-1 text-xs">
+              {items.map((i) => (
+                <li key={i.id} className="py-2 flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {i.image_url ? (
+                      <img
+                        src={i.image_url}
+                        alt={i.name}
+                        className="w-9 h-9 rounded-lg object-cover shrink-0 border border-border/60"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0 truncate">
+                      <p className="font-medium text-foreground truncate">{i.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {i.quantity} × {formatBDT(i.price)}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-foreground shrink-0">
+                    {formatBDT(i.price * i.quantity)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs">
+              <div className="flex justify-between text-muted-foreground">
+                <span>সাবটোটাল</span>
+                <span>{formatBDT(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>ডেলিভারি চার্জ ({zone === "inside" ? "ঢাকা" : "ঢাকার বাইরে"})</span>
+                <span>{formatBDT(deliveryFee)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-foreground text-sm pt-1 border-t border-border/40">
+                <span>সর্বমোট পরিশোধযোগ্য</span>
+                <span className="text-primary">{formatBDT(total)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={onSubmit} className="grid lg:grid-cols-12 gap-6 lg:gap-10">
+        {/* Left Form Column */}
+        <div className="lg:col-span-7 space-y-5">
+          <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm">
+            <h2
+              className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 mb-4 sm:mb-6"
+              style={{ fontFamily: "'Tiro Bangla', serif" }}
+            >
               <Truck className="w-5 h-5 text-gold" />
               ডেলিভারি তথ্য
             </h2>
 
-            <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field
                 label="আপনার পুরো নাম"
                 placeholder="যেমন: মোহাম্মদ আব্দুল্লাহ"
@@ -214,55 +311,66 @@ function Checkout() {
 
               {/* District Dropdown */}
               <div className="sm:col-span-2">
-                <label className="block text-[11px] uppercase tracking-[0.2em] text-gold mb-2 font-semibold">
+                <label className="block text-[11px] uppercase tracking-[0.18em] text-gold mb-1.5 font-semibold">
                   জেলা নির্বাচন করুন <span className="text-destructive">*</span>
                 </label>
-                <select
-                  value={form.district}
-                  onChange={(e) => handleDistrictChange(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors text-sm"
-                >
-                  {BD_DISTRICTS.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={form.district}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    className="w-full h-11 sm:h-12 px-3.5 pr-9 rounded-xl border border-input bg-background text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors appearance-none cursor-pointer"
+                  >
+                    {BD_DISTRICTS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               {/* Delivery Zone Radio Cards */}
               <div className="sm:col-span-2">
-                <label className="block text-[11px] uppercase tracking-[0.2em] text-gold mb-2 font-semibold">
+                <label className="block text-[11px] uppercase tracking-[0.18em] text-gold mb-1.5 font-semibold">
                   ডেলিভারি এলাকা <span className="text-destructive">*</span>
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {([
-                    { id: "inside", label: "ঢাকা সিটির ভেতরে", fee: 80 },
-                    { id: "outside", label: "ঢাকার বাইরে (সমগ্র বাংলাদেশ)", fee: 130 },
+                    { id: "inside", label: "ঢাকা সিটির ভেতরে", fee: 80, time: "২-৩ দিন" },
+                    { id: "outside", label: "ঢাকার বাইরে (সারাদেশ)", fee: 130, time: "৩-৫ দিন" },
                   ] as const).map((opt) => {
                     const active = zone === opt.id;
-                    const finalFee = isFreeDelivery ? 0 : opt.fee;
                     return (
                       <label
                         key={opt.id}
-                        className={`flex items-center justify-between gap-2 px-4 py-3 border rounded-xl cursor-pointer transition ${
+                        className={cn(
+                          "flex items-center justify-between gap-2 px-3.5 py-3 border rounded-xl cursor-pointer transition active:scale-[0.99]",
                           active
-                            ? "border-gold bg-gold/10 ring-1 ring-gold"
-                            : "border-input bg-background hover:border-gold/40"
-                        }`}
+                            ? "border-gold bg-primary/5 ring-1 ring-gold shadow-sm"
+                            : "border-input bg-background hover:border-gold/50",
+                        )}
                       >
                         <span className="flex items-center gap-2.5 min-w-0">
                           <span
-                            className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${
-                              active ? "border-gold" : "border-muted-foreground/40"
-                            }`}
+                            className={cn(
+                              "w-4 h-4 shrink-0 rounded-full border flex items-center justify-center",
+                              active ? "border-gold" : "border-muted-foreground/40",
+                            )}
                           >
                             {active && <span className="w-2 h-2 rounded-full bg-gold" />}
                           </span>
-                          <span className="text-xs font-semibold truncate">{opt.label}</span>
+                          <span className="flex flex-col">
+                            <span className="text-xs sm:text-sm font-semibold text-foreground">
+                              {opt.label}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              সময়সীমা: {opt.time}
+                            </span>
+                          </span>
                         </span>
-                        <span className="text-xs font-bold text-primary shrink-0">
-                          {isFreeDelivery ? "ফ্রি" : formatBDT(finalFee)}
+                        <span className="text-xs sm:text-sm font-bold text-primary shrink-0">
+                          {formatBDT(opt.fee)}
                         </span>
                         <input
                           type="radio"
@@ -276,6 +384,9 @@ function Checkout() {
                     );
                   })}
                 </div>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1.5 pl-0.5">
+                  * ১ কেজি পর্যন্ত ফিক্সড চার্জ, পরবর্তী প্রতি অতিরিক্ত কেজিতে ৳২০ যোগ হবে
+                </p>
               </div>
 
               {/* Detailed Address */}
@@ -291,65 +402,81 @@ function Checkout() {
 
               {/* Order Notes */}
               <div className="sm:col-span-2">
-                <label className="block text-[11px] uppercase tracking-[0.2em] text-gold mb-2 font-semibold">
+                <label className="block text-[11px] uppercase tracking-[0.18em] text-gold mb-1.5 font-semibold">
                   বিশেষ নির্দেশনা (অপশনাল)
                 </label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   placeholder="প্যাকেজিং বা ডেলিভারি নিয়ে কোনো বিশেষ নির্দেশনা থাকলে লিখুন..."
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors text-sm"
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors text-base sm:text-sm placeholder:text-muted-foreground/60"
                 />
               </div>
             </div>
           </div>
 
           {/* Trust Guarantees Strip */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border/70 flex items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-section-a/60 border border-border/70 flex items-center gap-2.5">
               <Banknote className="w-5 h-5 text-gold shrink-0" />
               <div className="text-xs">
                 <p className="font-bold text-foreground">ক্যাশ অন ডেলিভারি</p>
-                <p className="text-muted-foreground">পণ্য হাতে পেয়ে মূল্য পরিশোধ</p>
+                <p className="text-[11px] text-muted-foreground">পণ্য পেয়ে মূল্য পরিশোধ</p>
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border/70 flex items-center gap-3">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-section-a/60 border border-border/70 flex items-center gap-2.5">
               <ShieldCheck className="w-5 h-5 text-gold shrink-0" />
               <div className="text-xs">
                 <p className="font-bold text-foreground">১০০% আসল পণ্য</p>
-                <p className="text-muted-foreground">যাচাইকৃত কোয়ালিটি</p>
+                <p className="text-[11px] text-muted-foreground">যাচাইকৃত কোয়ালিটি</p>
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border/70 flex items-center gap-3">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-section-a/60 border border-border/70 flex items-center gap-2.5">
               <Truck className="w-5 h-5 text-gold shrink-0" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">নিরাপদ ট্রানজিট</p>
-                <p className="text-muted-foreground">বাবল-র‍্যাপ প্রোটেকশন</p>
+                <p className="font-bold text-foreground">নিরাপদ ডেলিভারি</p>
+                <p className="text-[11px] text-muted-foreground">বাবল-র‍্যাপ প্রোটেকশন</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Order Summary Right Column */}
+        {/* Right Desktop Order Summary Column */}
         <div className="lg:col-span-5">
-          <aside className="bg-card p-6 sm:p-7 rounded-3xl border border-gold/40 shadow-md lg:sticky lg:top-28">
-            <span className="block text-[11px] uppercase tracking-[0.28em] text-gold mb-2 font-semibold">
+          <aside className="bg-card p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gold/40 shadow-sm lg:sticky lg:top-24">
+            <span className="block text-[10px] uppercase tracking-[0.24em] text-gold mb-1 font-semibold">
               অর্ডার বিবরণী
             </span>
-            <h2 className="font-display text-2xl text-foreground">
-              আপনার নির্বাচিত পণ্যসমূহ
+            <h2
+              className="text-xl sm:text-2xl font-bold text-foreground"
+              style={{ fontFamily: "'Tiro Bangla', serif" }}
+            >
+              নির্বাচিত পণ্যসমূহ
             </h2>
-            <div className="mt-3 h-px w-10 bg-gold/60" />
+            <div className="mt-2.5 h-px w-10 bg-gold/60" />
 
-            <ul className="mt-5 space-y-3 max-h-72 overflow-y-auto pr-1">
+            <ul className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1 divide-y divide-border/40">
               {items.map((i) => (
-                <li key={i.id} className="flex justify-between items-center gap-3 text-sm pb-2 border-b border-border/50">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground truncate">{i.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {i.quantity} × {formatBDT(i.price)}
-                    </p>
+                <li key={i.id} className="pt-2.5 first:pt-0 flex justify-between items-center gap-3 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {i.image_url ? (
+                      <img
+                        src={i.image_url}
+                        alt={i.name}
+                        className="w-11 h-11 rounded-lg object-cover shrink-0 border border-border/60"
+                      />
+                    ) : (
+                      <div className="w-11 h-11 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <ShoppingBag className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground truncate">{i.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {i.quantity} × {formatBDT(i.price)}
+                      </p>
+                    </div>
                   </div>
                   <span className="font-semibold text-foreground shrink-0">
                     {formatBDT(i.price * i.quantity)}
@@ -359,29 +486,23 @@ function Checkout() {
             </ul>
 
             <div className="border-t border-border my-4" />
-            <dl className="space-y-2.5 text-sm">
+            <dl className="space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">সাবটোটাল</dt>
                 <dd className="font-medium">{formatBDT(subtotal)}</dd>
               </div>
               <div className="flex justify-between items-center">
-                <dt className="text-muted-foreground">ডেলিভারি চার্জ</dt>
-                <dd className="font-medium">
-                  {isFreeDelivery ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full text-xs">
-                      ফ্রি ডেলিভারি
-                    </span>
-                  ) : (
-                    formatBDT(deliveryFee)
-                  )}
-                </dd>
+                <dt className="text-muted-foreground">
+                  ডেলিভারি চার্জ ({zone === "inside" ? "ঢাকা সিটি" : "ঢাকার বাইরে"})
+                </dt>
+                <dd className="font-medium">{formatBDT(deliveryFee)}</dd>
               </div>
             </dl>
 
             <div className="border-t border-gold/30 my-4" />
-            <div className="flex justify-between items-baseline font-display text-2xl">
-              <span className="text-foreground">সর্বমোট মূল্য</span>
-              <span className="text-primary font-bold">{formatBDT(total)}</span>
+            <div className="flex justify-between items-baseline">
+              <span className="font-display text-lg sm:text-xl text-foreground">সর্বমোট মূল্য</span>
+              <span className="text-xl sm:text-2xl font-bold text-primary">{formatBDT(total)}</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               * কোনো অগ্রিম পেমেন্টের প্রয়োজন নেই, ডেলিভারির সময় মূল্য পরিশোধ করবেন।
@@ -390,12 +511,33 @@ function Checkout() {
             <button
               disabled={submitting}
               type="submit"
-              className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3.5 rounded-full font-bold text-sm disabled:opacity-50 transition-all shadow-lg hover:shadow-xl"
+              className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3.5 rounded-full font-bold text-sm disabled:opacity-50 transition-all shadow-md active:scale-[0.99] cursor-pointer"
             >
               {submitting && <Spinner className="w-4 h-4" />}
-              {submitting ? "অর্ডার পাঠানো হচ্ছে…" : "অর্ডার নিশ্চিত করুন (ক্যাশ অন ডেলিভারি)"}
+              {submitting ? "অর্ডার পাঠানো হচ্ছে…" : `অর্ডার নিশ্চিত করুন — ${formatBDT(total)}`}
             </button>
           </aside>
+        </div>
+
+        {/* MOBILE STICKY BOTTOM CHECKOUT BAR */}
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-md border-t border-gold/30 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]">
+          <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
+            <div>
+              <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">সর্বমোট মূল্য</span>
+              <span className="text-base sm:text-lg font-extrabold text-primary leading-tight">
+                {formatBDT(total)}
+              </span>
+              <span className="block text-[9px] text-muted-foreground">ক্যাশ অন ডেলিভারি</span>
+            </div>
+            <button
+              disabled={submitting}
+              type="submit"
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3 px-4 rounded-xl font-bold text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              {submitting && <Spinner className="w-3.5 h-3.5" />}
+              {submitting ? "অর্ডার হচ্ছে…" : "অর্ডার নিশ্চিত করুন"}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -419,7 +561,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] uppercase tracking-[0.2em] text-gold mb-2 font-semibold">
+      <label className="block text-[11px] uppercase tracking-[0.18em] text-gold mb-1.5 font-semibold">
         {label} {required && <span className="text-destructive">*</span>}
       </label>
       <input
@@ -428,7 +570,7 @@ function Field({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors text-sm"
+        className="w-full h-11 sm:h-12 px-3.5 rounded-xl border border-input bg-background text-foreground text-base sm:text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold transition-colors"
       />
     </div>
   );
