@@ -125,16 +125,17 @@ function Layout() {
   const path = typeof window !== "undefined" ? window.location.pathname : routerPath;
   const isAdmin = path.startsWith("/admin");
   const isLanding = path.startsWith("/landing");
+  const isCategories = path === "/categories";
   const isBare = isAdmin || isLanding;
   return (
     <>
       <SiteLoader />
       <TopProgressBar />
       {!isBare && <Header />}
-      <main className={isBare ? "" : "min-h-[60vh] pb-20 lg:pb-0 animate-in fade-in duration-300"}>
+      <main className={isBare ? "" : isCategories ? "overflow-hidden" : "min-h-[60vh] pb-20 lg:pb-0 animate-in fade-in duration-300"}>
         <Outlet />
       </main>
-      {!isBare && <Footer />}
+      {!isBare && !isCategories && <Footer />}
       {!isBare && <WhatsAppButton />}
       {!isBare && <MobileBottomNav />}
       {!isBare && <MetaPixel />}

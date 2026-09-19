@@ -62,30 +62,22 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
 
         ) : (
           <>
-            {/* Free Delivery Goal Progress Bar */}
-            <div className="px-4 sm:px-6 py-3 bg-muted/40 border-b border-border/80">
-              <div className="flex items-center justify-between text-xs mb-1.5 font-medium">
-                {subtotal >= 2000 ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-                    🎉 অভিনন্দন! ফ্রি ডেলিভারি কার্যকর হয়েছে!
-                  </span>
-                ) : (
-                  <span className="text-foreground/90">
-                    ফ্রি ডেলিভারির জন্য আর মাত্র <strong className="text-gold font-bold">{formatBDT(2000 - subtotal)}</strong> প্রয়োজন
-                  </span>
-                )}
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  {Math.min(100, Math.round((subtotal / 2000) * 100))}%
+            {/* Standard Delivery Info Strip */}
+            <div className="px-4 sm:px-6 py-2.5 bg-muted/40 border-b border-border/80">
+              <div className="flex items-center justify-between text-xs font-medium">
+                <span className="text-foreground/90 flex items-center gap-1.5" style={{ fontFamily: "'Tiro Bangla', serif" }}>
+                  🚚 ডেলিভারি: ঢাকা ৳৮০ · বাইরে ৳১৩০
                 </span>
+                <Link
+                  to="/shipping-policy"
+                  className="text-[11px] text-primary hover:underline font-semibold"
+                >
+                  পলিসি দেখুন
+                </Link>
               </div>
-              <div className="w-full h-1.5 bg-border/80 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    subtotal >= 2000 ? "bg-emerald-500" : "bg-gold"
-                  }`}
-                  style={{ width: `${Math.min(100, (subtotal / 2000) * 100)}%` }}
-                />
-              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                ১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০ যোগ হবে
+              </p>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3">
