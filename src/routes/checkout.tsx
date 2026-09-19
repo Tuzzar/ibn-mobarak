@@ -180,7 +180,7 @@ function Checkout() {
   };
 
   return (
-    <div className="container mx-auto px-3.5 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-16">
+    <div className="container mx-auto px-4 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-16 overflow-x-hidden">
       {/* Top Breadcrumb & Header */}
       <div className="mb-5 sm:mb-8">
         <Link
@@ -336,7 +336,7 @@ function Checkout() {
                 <label className="block text-[11px] uppercase tracking-[0.18em] text-gold mb-1.5 font-semibold">
                   ডেলিভারি এলাকা <span className="text-destructive">*</span>
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {([
                     { id: "inside", label: "ঢাকা সিটির ভেতরে", fee: 80, time: "২-৩ দিন" },
                     { id: "outside", label: "ঢাকার বাইরে (সারাদেশ)", fee: 130, time: "৩-৫ দিন" },
@@ -346,13 +346,13 @@ function Checkout() {
                       <label
                         key={opt.id}
                         className={cn(
-                          "flex items-center justify-between gap-2 px-3.5 py-3 border rounded-xl cursor-pointer transition active:scale-[0.99]",
+                          "flex items-center justify-between gap-2 px-3 py-3 border rounded-xl cursor-pointer transition active:scale-[0.99] overflow-hidden",
                           active
                             ? "border-gold bg-primary/5 ring-1 ring-gold shadow-sm"
                             : "border-input bg-background hover:border-gold/50",
                         )}
                       >
-                        <span className="flex items-center gap-2.5 min-w-0">
+                        <span className="flex items-center gap-2 min-w-0 flex-1">
                           <span
                             className={cn(
                               "w-4 h-4 shrink-0 rounded-full border flex items-center justify-center",
@@ -361,16 +361,16 @@ function Checkout() {
                           >
                             {active && <span className="w-2 h-2 rounded-full bg-gold" />}
                           </span>
-                          <span className="flex flex-col">
-                            <span className="text-xs sm:text-sm font-semibold text-foreground">
+                          <span className="flex flex-col min-w-0">
+                            <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
                               {opt.label}
                             </span>
                             <span className="text-[10px] text-muted-foreground">
-                              সময়সীমা: {opt.time}
+                              সময়সীমা: {opt.time}
                             </span>
                           </span>
                         </span>
-                        <span className="text-xs sm:text-sm font-bold text-primary shrink-0">
+                        <span className="text-xs font-bold text-primary shrink-0 whitespace-nowrap">
                           {formatBDT(opt.fee)}
                         </span>
                         <input
@@ -418,19 +418,19 @@ function Checkout() {
           </div>
 
           {/* 2. ORDER NOW BUTTON — RIGHT AFTER ADDRESS SECTION (AS REQUESTED) */}
-          <div className="bg-card border border-gold/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-md">
-            <div className="flex items-center justify-between mb-3 text-xs sm:text-sm pb-2.5 border-b border-border/50">
+          <div className="bg-card border border-gold/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-md overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-1 mb-3 text-xs sm:text-sm pb-2.5 border-b border-border/50">
               <span className="text-muted-foreground">মোট পরিশোধযোগ্য মূল্য:</span>
-              <span className="text-lg sm:text-xl font-bold text-primary">{formatBDT(total)}</span>
+              <span className="text-base sm:text-xl font-bold text-primary whitespace-nowrap">{formatBDT(total)}</span>
             </div>
 
             <button
               disabled={submitting}
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-4 px-6 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base shadow-lg transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3.5 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-lg transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
             >
               {submitting && <Spinner className="w-4 h-4" />}
-              <span>{submitting ? "অর্ডার পাঠানো হচ্ছে…" : `অর্ডার নিশ্চিত করুন — ${formatBDT(total)}`}</span>
+              <span className="truncate">{submitting ? "অর্ডার পাঠানো হচ্ছে…" : `অর্ডার নিশ্চিত করুন — ${formatBDT(total)}`}</span>
             </button>
 
             <p className="text-center text-[11px] sm:text-xs text-muted-foreground mt-2.5" style={{ fontFamily: "'Tiro Bangla', serif" }}>
@@ -480,27 +480,27 @@ function Checkout() {
 
             <ul className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1 divide-y divide-border/40">
               {items.map((i) => (
-                <li key={i.id} className="pt-2.5 first:pt-0 flex justify-between items-center gap-2.5 text-xs sm:text-sm">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <li key={i.id} className="pt-2.5 first:pt-0 flex justify-between items-center gap-2 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     {i.image_url ? (
                       <img
                         src={i.image_url}
                         alt={i.name}
-                        className="w-11 h-11 rounded-lg object-cover shrink-0 border border-border/60"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg object-cover shrink-0 border border-border/60"
                       />
                     ) : (
-                      <div className="w-11 h-11 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-muted flex items-center justify-center shrink-0">
                         <ShoppingBag className="w-5 h-5 text-muted-foreground" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground truncate">{i.name}</p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="font-medium text-foreground truncate text-[11px] sm:text-sm">{i.name}</p>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground">
                         {i.quantity} × {formatBDT(i.price)}
                       </p>
                     </div>
                   </div>
-                  <span className="font-semibold text-foreground shrink-0 text-right">
+                  <span className="font-semibold text-foreground shrink-0 text-right whitespace-nowrap text-[11px] sm:text-sm">
                     {formatBDT(i.price * i.quantity)}
                   </span>
                 </li>
@@ -509,22 +509,22 @@ function Checkout() {
 
             <div className="border-t border-border my-4" />
             <dl className="space-y-2 text-xs sm:text-sm">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">সাবটোটাল</dt>
-                <dd className="font-medium">{formatBDT(subtotal)}</dd>
+                <dd className="font-medium whitespace-nowrap">{formatBDT(subtotal)}</dd>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center gap-1">
                 <dt className="text-muted-foreground">
                   ডেলিভারি চার্জ ({zone === "inside" ? "ঢাকা সিটি" : "ঢাকার বাইরে"})
                 </dt>
-                <dd className="font-medium">{formatBDT(deliveryFee)}</dd>
+                <dd className="font-medium whitespace-nowrap">{formatBDT(deliveryFee)}</dd>
               </div>
             </dl>
 
             <div className="border-t border-gold/30 my-4" />
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-display text-base sm:text-lg text-foreground">সর্বমোট মূল্য</span>
-              <span className="text-lg sm:text-2xl font-bold text-primary break-words">
+              <span className="font-display text-sm sm:text-lg text-foreground">সর্বমোট মূল্য</span>
+              <span className="text-base sm:text-2xl font-bold text-primary whitespace-nowrap">
                 {formatBDT(total)}
               </span>
             </div>
