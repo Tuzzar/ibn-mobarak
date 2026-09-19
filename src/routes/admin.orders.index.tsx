@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ChevronRight, Pencil, Loader2, Search, Inbox } from "lucide-react";
+import { ChevronRight, Pencil, Loader2, Search, Inbox, Truck, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
 import { formatBDT } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
@@ -270,6 +270,14 @@ function OrderRow({
         >
           {order.status}
         </span>
+        {(order as any).courier_consignment_id ? (
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+            <Truck className="w-3 h-3 shrink-0" />
+            <span title={`Tracking: ${(order as any).courier_tracking_code || "N/A"}`}>
+              Steadfast #{(order as any).courier_consignment_id}
+            </span>
+          </div>
+        ) : null}
       </td>
       <td className="px-4 py-4 text-right font-display text-lg text-primary whitespace-nowrap">
         {formatBDT(Number(order.total))}

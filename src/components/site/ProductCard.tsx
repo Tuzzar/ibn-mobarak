@@ -180,19 +180,27 @@ function ProductCardBase({ product, priority = false }: Props) {
             onClick={handleAdd}
             disabled={adding || buying || soldOut}
             aria-label={hasSizes ? `Choose options for ${product.name}` : `Add ${product.name} to cart`}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-primary/40 bg-background hover:bg-primary hover:text-primary-foreground text-primary rounded-full py-1.5 md:py-2.5 text-[11px] md:text-sm font-medium tracking-wide transition-colors disabled:opacity-60"
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-1.5 md:py-2.5 text-[11px] md:text-sm font-medium tracking-wide transition-colors ${
+              soldOut
+                ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-75"
+                : "border border-primary/40 bg-background hover:bg-primary hover:text-primary-foreground text-primary disabled:opacity-60"
+            }`}
           >
             {adding ? <Spinner className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
-            {soldOut ? "Stock nei" : hasSizes ? "অপশন দেখুন" : adding ? "Adding…" : "যোগ করুন"}
+            {soldOut ? "স্টক আউট" : hasSizes ? "অপশন বাছাই করুন" : adding ? "যোগ হচ্ছে..." : "কার্টে যোগ করুন"}
           </button>
           <button
-            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-accent hover:text-accent-foreground text-primary-foreground rounded-full py-1.5 md:py-2.5 text-[11px] md:text-sm font-semibold tracking-wide transition-colors disabled:opacity-60"
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-1.5 md:py-2.5 text-[11px] md:text-sm font-semibold tracking-wide transition-colors ${
+              soldOut
+                ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-75"
+                : "bg-primary hover:bg-accent hover:text-accent-foreground text-primary-foreground disabled:opacity-60"
+            }`}
             onClick={handleBuyNow}
             disabled={buying || adding || soldOut}
             aria-label={`Buy ${product.name} now`}
           >
             {buying ? <Spinner className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
-            {soldOut ? "Out of stock" : buying ? "Processing…" : "কিনুন"}
+            {soldOut ? "স্টক নেই" : buying ? "অর্ডার হচ্ছে..." : "সরাসরি অর্ডার"}
           </button>
         </div>
       </div>

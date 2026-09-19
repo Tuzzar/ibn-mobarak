@@ -62,6 +62,32 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
 
         ) : (
           <>
+            {/* Free Delivery Goal Progress Bar */}
+            <div className="px-4 sm:px-6 py-3 bg-muted/40 border-b border-border/80">
+              <div className="flex items-center justify-between text-xs mb-1.5 font-medium">
+                {subtotal >= 2000 ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                    🎉 অভিনন্দন! ফ্রি ডেলিভারি কার্যকর হয়েছে!
+                  </span>
+                ) : (
+                  <span className="text-foreground/90">
+                    ফ্রি ডেলিভারির জন্য আর মাত্র <strong className="text-gold font-bold">{formatBDT(2000 - subtotal)}</strong> প্রয়োজন
+                  </span>
+                )}
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {Math.min(100, Math.round((subtotal / 2000) * 100))}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-border/80 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 rounded-full ${
+                    subtotal >= 2000 ? "bg-emerald-500" : "bg-gold"
+                  }`}
+                  style={{ width: `${Math.min(100, (subtotal / 2000) * 100)}%` }}
+                />
+              </div>
+            </div>
+
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3">
               {items.map((item) => (
                 <div
@@ -89,7 +115,7 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
                       </Link>
                     </SheetClose>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {formatBDT(item.price)} / {item.unit ?? "kg"}
+                      {formatBDT(item.price)} / {item.unit ?? "pcs"}
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <div className="inline-flex items-center border border-border rounded-full">
@@ -129,21 +155,23 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
 
             <div className="border-t border-gold/40 px-6 py-5 bg-card space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase tracking-[0.2em] text-gold">Subtotal</span>
-                <span className="font-display text-xl text-primary">
+                <span className="text-[11px] uppercase tracking-[0.2em] text-gold font-semibold">সাবটোটাল</span>
+                <span className="font-display text-xl text-primary font-bold">
                   {formatBDT(subtotal)}
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground italic">
-                Delivery calculated at checkout.
+              <p className="text-[11px] text-muted-foreground">
+                {subtotal >= 2000
+                  ? "✓ এই অর্ডারে কোনো ডেলিভারি চার্জ প্রযোজ্য হবে না।"
+                  : "ডেলিভারি চার্জ চেকআউটে হিসাব করা হবে (ঢাকা ৳৮০, বাইরে ৳১৩০)।"}
               </p>
               <div className="flex flex-col gap-2">
                 <SheetClose asChild>
                   <Link
                     to="/checkout"
-                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-full text-sm font-medium hover:bg-gold hover:text-gold-foreground transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-full text-sm font-semibold hover:bg-gold hover:text-gold-foreground transition-colors shadow-md"
                   >
-                    Checkout <ArrowRight className="w-4 h-4" />
+                    অর্ডার সম্পন্ন করুন <ArrowRight className="w-4 h-4" />
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
@@ -151,7 +179,7 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
                     to="/cart"
                     className="w-full inline-flex items-center justify-center border border-border hover:border-gold text-foreground py-2.5 rounded-full text-xs font-medium tracking-wide transition-colors"
                   >
-                    View full basket
+                    সম্পূর্ণ কার্ট বিস্তারিত দেখুন
                   </Link>
                 </SheetClose>
               </div>

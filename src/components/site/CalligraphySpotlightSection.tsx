@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Feather, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { Feather, ArrowRight, CheckCircle2 } from "lucide-react";
 import { categoryShowcaseProductsOptions } from "@/lib/queries";
 import { ProductCard } from "./ProductCard";
 
@@ -88,10 +88,12 @@ export function CalligraphySpotlightSection() {
           </div>
         </div>
 
-        {/* Right Product Grid: 6 Items (2 cols on mobile, 3 cols on desktop) */}
-        <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        {/* Right Product Grid: 6 Items (Horizontal swipe on mobile, 3 cols on desktop) */}
+        <div className="lg:col-span-8 flex sm:grid overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 pb-3 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {products.slice(0, 6).map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} className="min-w-[210px] max-w-[250px] w-[66vw] sm:w-auto sm:min-w-0 sm:max-w-none snap-start shrink-0 sm:shrink">
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       </div>

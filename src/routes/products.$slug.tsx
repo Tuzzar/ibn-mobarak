@@ -16,6 +16,9 @@ import {
   Check,
   Clock,
   Gift,
+  MessageCircle,
+  ZoomIn,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, formatBDT } from "@/lib/cart";
@@ -127,6 +130,7 @@ function ProductDetail() {
   const hasSizes = sizes.length > 0;
   const sizeStockTotal = totalSizeStock(sizes);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     if (sizes.length > 0) {
@@ -289,6 +293,7 @@ function ProductDetail() {
             ref={imgWrapRef}
             onMouseMove={onMove}
             onMouseLeave={() => setZoom((z) => ({ ...z, on: false }))}
+            onClick={() => setLightboxOpen(true)}
             className="relative flex-1 aspect-square overflow-hidden bg-secondary/40 border border-border shadow-[var(--shadow-card)] cursor-zoom-in group"
           >
             {activeImage ? (
@@ -315,6 +320,13 @@ function ProductDetail() {
             )}
             {/* Gold hairline inner frame */}
             <div className="pointer-events-none absolute inset-3 border border-gold/40" />
+            
+            {/* Click to expand pill */}
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] uppercase tracking-wider bg-background/90 backdrop-blur px-2.5 py-1 rounded-full border border-gold/30 text-foreground shadow-sm">
+              <ZoomIn className="w-3 h-3 text-gold" />
+              <span>বড় করে দেখুন</span>
+            </div>
+
             <div className="hidden md:block absolute bottom-3 right-3 text-[10px] uppercase tracking-widest bg-background/95 backdrop-blur px-2.5 py-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
               Hover to zoom
             </div>
@@ -474,6 +486,27 @@ function ProductDetail() {
                 {oos ? "স্টক আউট" : needsSize ? "সাইজ সিলেক্ট করুন" : buying ? "অর্ডার হচ্ছে…" : "সরাসরি অর্ডার করুন"}
               </button>
             </div>
+
+            {/* Direct WhatsApp Consultation CTA */}
+            <a
+              href={`https://wa.me/8801918367980?text=${encodeURIComponent(
+                `আসসালামু আলাইকুম, আমি Ibn Mobarak Art Gallery থেকে "${product.name}" সম্পর্কে জানতে চাচ্ছি: https://ibnmobarak.art/products/${product.slug}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mt-3 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-xs tracking-wide transition-colors"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-500" />
+              <span>WhatsApp এ এই পণ্য সম্পর্কে প্রশ্ন করুন</span>
+            </a>
+
+            {/* Estimated Dispatch Alert */}
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3.5 py-2.5 rounded-xl border border-border/60">
+              <Clock className="w-4 h-4 text-gold shrink-0" />
+              <span>
+                আজ অর্ডার করলে সম্ভাব্য ডেলিভারি: <strong>১-৩ কার্যদিবসের মধ্যে</strong> (ঢাকা ১-২ দিন, ঢাকার বাইরে ২-৪ দিন)
+              </span>
+            </div>
           </div>
 
           {/* Quick Perks / Delivery summary in Buy Box */}
@@ -481,7 +514,7 @@ function ProductDetail() {
             <div className="flex items-center gap-2.5">
               <Truck className="w-4 h-4 text-gold shrink-0" />
               <span>
-                <strong>সারা দেশে ক্যাশ অন ডেলিভারি:</strong> ঢাকা সিটিতে ২-৩ দিন (৳৮০), ঢাকার বাইরে ৩-৫ দিন (৳১৩০)
+                <strong>সারা দেশে ক্যাশ অন ডেলিভারি:</strong> ঢাকা সিটিতে (৳৮০), ঢাকার বাইরে (৳১৩০)। <strong>৳২,০০০+ অর্ডারে ফ্রি ডেলিভারি!</strong>
               </span>
             </div>
             <div className="flex items-center gap-2.5">
@@ -658,21 +691,43 @@ function ProductDetail() {
           <button
             onClick={handleAdd}
             disabled={blocked || adding || buying}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-primary text-primary rounded-full py-2.5 text-sm font-medium disabled:opacity-50"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-primary text-primary rounded-full py-2.5 text-xs sm:text-sm font-medium disabled:opacity-50"
           >
             {adding ? <Spinner className="w-4 h-4" /> : <ShoppingBag className="w-4 h-4" />}
-            {adding ? "Adding…" : "যোগ করুন"}
+            {adding ? "যোগ হচ্ছে…" : "কার্টে যোগ করুন"}
           </button>
           <button
             onClick={handleBuyNow}
             disabled={blocked || buying || adding}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground rounded-full py-2.5 text-sm font-medium disabled:opacity-50 shadow-sm"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground rounded-full py-2.5 text-xs sm:text-sm font-bold disabled:opacity-50 shadow-sm"
           >
             {buying ? <Spinner className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-            {oos ? "Out of stock" : needsSize ? "সাইজ দিন" : buying ? "Processing…" : "কিনুন"}
+            {oos ? "স্টক আউট" : needsSize ? "অপশন বাছাই করুন" : buying ? "অর্ডার হচ্ছে…" : "সরাসরি অর্ডার"}
           </button>
         </div>
       </div>
+
+      {/* Fullscreen Art Lightbox Modal */}
+      {lightboxOpen && activeImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            aria-label="Close image preview"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={activeImage}
+            alt={product.name}
+            className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
     </div>
   );

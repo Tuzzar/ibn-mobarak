@@ -16,11 +16,11 @@ export function ArtistReviewsSection() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+      <div className="flex md:grid overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none md:grid-cols-3 gap-4 sm:gap-6 pb-3 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {ARTIST_TESTIMONIALS.map((review) => (
           <div
             key={review.id}
-            className="p-6 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between relative group hover:border-primary/40 transition-colors"
+            className="min-w-[80vw] sm:min-w-[340px] md:min-w-0 snap-start shrink-0 md:shrink p-6 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between relative group hover:border-primary/40 transition-colors"
           >
             <div>
               {/* Stars */}

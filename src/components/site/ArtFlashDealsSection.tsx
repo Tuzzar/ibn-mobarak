@@ -79,14 +79,15 @@ export function ArtFlashDealsSection() {
           </div>
         </div>
 
-        {/* Product Grid (Responsive: 2 on mobile, 3 on tablet, 4 on desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+        {/* Product Carousel on Mobile / Grid on Desktop */}
+        <div className="flex sm:grid overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 pb-3 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {deals.slice(0, 8).map((product, idx) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              priority={idx < 2}
-            />
+            <div key={product.id} className="min-w-[220px] max-w-[260px] w-[68vw] sm:w-auto sm:min-w-0 sm:max-w-none snap-start shrink-0 sm:shrink">
+              <ProductCard
+                product={product}
+                priority={idx < 2}
+              />
+            </div>
           ))}
         </div>
 

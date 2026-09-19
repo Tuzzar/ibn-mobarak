@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, X, Copy, Star, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, X, Copy, Star, ArrowUp, ArrowDown, GripVertical, Search, Filter, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
 import { formatBDT } from "@/lib/cart";
 import { Spinner } from "@/components/site/Spinner";
@@ -79,14 +79,62 @@ function AdminProducts() {
     },
   });
 
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStock, setSelectedStock] = useState<"all" | "in" | "out">("all");
+  const [selectedLevel, setSelectedLevel] = useState<"all" | Level>("all");
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    (products ?? []).forEach((p: any) => {
+      if (p.category) set.add(p.category);
+    });
+    return Array.from(set).sort();
+  }, [products]);
+
+  const stats = useMemo(() => {
+    let inStock = 0;
+    let outStock = 0;
+    let featured = 0;
+    (products ?? []).forEach((p: any) => {
+      const isAvailable = (Number(p.stock) || 0) > 0 || totalSizeStock(parseSizes(p.weight_variants)) > 0;
+      if (isAvailable) inStock++;
+      else outStock++;
+      if (p.featured) featured++;
+    });
+    return { total: products?.length ?? 0, inStock, outStock, featured };
+  }, [products]);
+
+  const isFiltered = Boolean(search.trim() || selectedCategory !== "all" || selectedStock !== "all" || selectedLevel !== "all");
+
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (products ?? []).filter((p: any) => {
+      if (selectedLevel !== "all" && p.product_level !== selectedLevel) return false;
+      if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
+      if (selectedStock !== "all") {
+        const isAvailable = (Number(p.stock) || 0) > 0 || totalSizeStock(parseSizes(p.weight_variants)) > 0;
+        if (selectedStock === "in" && !isAvailable) return false;
+        if (selectedStock === "out" && isAvailable) return false;
+      }
+      if (q) {
+        const matchName = p.name?.toLowerCase().includes(q);
+        const matchSlug = p.slug?.toLowerCase().includes(q);
+        const matchId = p.id?.toLowerCase().includes(q);
+        if (!matchName && !matchSlug && !matchId) return false;
+      }
+      return true;
+    });
+  }, [products, search, selectedCategory, selectedStock, selectedLevel]);
+
   const grouped = useMemo(() => {
     const map: Record<Level, any[]> = { A: [], B: [], C: [], D: [], E: [], F: [] };
-    (products ?? []).forEach((p: any) => {
+    filteredProducts.forEach((p: any) => {
       const lvl = (LEVELS as readonly string[]).includes(p.product_level) ? (p.product_level as Level) : "F";
       map[lvl].push(p);
     });
     return map;
-  }, [products]);
+  }, [filteredProducts]);
 
   const save = async () => {
     if (!editing || saving) return;
@@ -255,19 +303,138 @@ function AdminProducts() {
 
   return (
     <div className="p-5 md:p-10">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 md:mb-8">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="font-display text-3xl md:text-4xl">Products</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">Drag rows within a level to reorder · A = highest priority</p>
+          <h1 className="font-display text-3xl md:text-4xl">Products Catalog</h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
+            মোট ৩,৯০০+ আর্ট পণ্যের ক্যাটালগ ও স্টক ব্যবস্থাপনা
+          </p>
         </div>
-        <button onClick={() => setEditing({ ...empty })} className="self-start sm:self-auto inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm">
+        <button
+          onClick={() => setEditing({ ...empty })}
+          className="self-start sm:self-auto inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-medium shadow-xs hover:bg-primary/90 transition"
+        >
           <Plus className="w-4 h-4" /> New product
         </button>
+      </div>
+
+      {/* Quick Stats Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-card border border-border/80 rounded-2xl p-4">
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Total Products</span>
+          <p className="text-2xl font-bold font-display text-foreground mt-1">{stats.total}</p>
+        </div>
+        <div className="bg-card border border-border/80 rounded-2xl p-4">
+          <span className="text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-semibold">In Stock</span>
+          <p className="text-2xl font-bold font-display text-emerald-600 dark:text-emerald-400 mt-1">{stats.inStock}</p>
+        </div>
+        <div className="bg-card border border-border/80 rounded-2xl p-4">
+          <span className="text-[11px] uppercase tracking-wider text-rose-600 dark:text-rose-400 font-semibold">Out of Stock</span>
+          <p className="text-2xl font-bold font-display text-rose-600 dark:text-rose-400 mt-1">{stats.outStock}</p>
+        </div>
+        <div className="bg-card border border-border/80 rounded-2xl p-4">
+          <span className="text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">Featured</span>
+          <p className="text-2xl font-bold font-display text-amber-600 dark:text-amber-400 mt-1">{stats.featured}</p>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="bg-card border border-border/80 rounded-2xl p-4 mb-6 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="পণ্য, স্লাগ বা আইডি খুঁজুন..."
+              className="w-full bg-background border border-border pl-10 pr-8 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-gold"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Dropdown */}
+          <div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full bg-background border border-border px-3 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-gold"
+            >
+              <option value="all">সকল ক্যাটাগরি ({categories.length})</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Stock Filter */}
+          <div>
+            <select
+              value={selectedStock}
+              onChange={(e) => setSelectedStock(e.target.value as any)}
+              className="w-full bg-background border border-border px-3 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-gold"
+            >
+              <option value="all">সব স্টক স্ট্যাটাস</option>
+              <option value="in">শুধু ইন-স্টক ({stats.inStock})</option>
+              <option value="out">আউট অব স্টক ({stats.outStock})</option>
+            </select>
+          </div>
+
+          {/* Level Filter */}
+          <div>
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value as any)}
+              className="w-full bg-background border border-border px-3 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-gold"
+            >
+              <option value="all">সব লেভেল (A - F)</option>
+              {LEVELS.map((l) => (
+                <option key={l} value={l}>Level {l}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Filter Indicator & Reset */}
+        {isFiltered && (
+          <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs">
+            <span className="text-muted-foreground">
+              ফিল্টার অনুসারে মোট <strong className="text-foreground">{filteredProducts.length}টি</strong> পণ্য পাওয়া গেছে
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setSelectedCategory("all");
+                setSelectedStock("all");
+                setSelectedLevel("all");
+              }}
+              className="inline-flex items-center gap-1 text-gold hover:text-primary transition font-medium"
+            >
+              <RotateCcw className="w-3 h-3" /> সব ফিল্টার রিসেট
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoading && <div className="p-8 text-center text-muted-foreground">Loading…</div>}
       {!isLoading && (products?.length ?? 0) === 0 && (
         <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-2xl">No products yet</div>
+      )}
+      {!isLoading && (products?.length ?? 0) > 0 && filteredProducts.length === 0 && (
+        <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-2xl">
+          ফিল্টারের সাথে কোনো পণ্য মেলেনি।
+        </div>
       )}
 
       <div className="space-y-6">
@@ -279,6 +446,7 @@ function AdminProducts() {
               key={level}
               level={level}
               items={items}
+              isFiltered={isFiltered}
               onEdit={(p) => setEditing({
                 id: p.id, name: p.name, slug: p.slug, description: p.description ?? "",
                 price: Number(p.price), stock: p.stock, category: p.category ?? "",
@@ -636,7 +804,7 @@ function AdminProducts() {
 }
 
 function LevelSection({
-  level, items, onEdit, onDuplicate, onDelete, onReorder,
+  level, items, onEdit, onDuplicate, onDelete, onReorder, isFiltered = false,
 }: {
   level: Level;
   items: any[];
@@ -644,28 +812,40 @@ function LevelSection({
   onDuplicate: (p: any) => void;
   onDelete: (id: string) => void;
   onReorder: (ordered: any[]) => void;
+  isFiltered?: boolean;
 }) {
+  const [displayLimit, setDisplayLimit] = useState(30);
+  const visibleItems = useMemo(() => items.slice(0, displayLimit), [items, displayLimit]);
+  const ids = visibleItems.map((p) => p.id);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const ids = items.map((p) => p.id);
 
   const handleDragEnd = (e: DragEndEvent) => {
+    if (isFiltered) return;
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const oldIdx = ids.indexOf(active.id as string);
-    const newIdx = ids.indexOf(over.id as string);
+    const oldIdx = items.findIndex((p) => p.id === active.id);
+    const newIdx = items.findIndex((p) => p.id === over.id);
     if (oldIdx < 0 || newIdx < 0) return;
     onReorder(arrayMove(items, oldIdx, newIdx));
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/40 border-b border-border">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold">{level}</span>
-        <span className="text-sm font-medium">Level {level}</span>
-        <span className="text-xs text-muted-foreground">· {items.length} item{items.length === 1 ? "" : "s"}</span>
+    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold">{level}</span>
+          <span className="text-sm font-medium">Level {level}</span>
+          <span className="text-xs text-muted-foreground">· {items.length} item{items.length === 1 ? "" : "s"}</span>
+        </div>
+        {items.length > displayLimit && (
+          <span className="text-[11px] text-muted-foreground">
+            দেখাচ্ছে ১–{Math.min(displayLimit, items.length)}
+          </span>
+        )}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[720px]">
@@ -684,7 +864,7 @@ function LevelSection({
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
               <tbody>
-                {items.map((p) => (
+                {visibleItems.map((p) => (
                   <SortableRow
                     key={p.id}
                     product={p}
@@ -698,6 +878,24 @@ function LevelSection({
           </DndContext>
         </table>
       </div>
+      {items.length > displayLimit && (
+        <div className="p-3 text-center bg-muted/20 border-t border-border flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setDisplayLimit((prev) => prev + 50)}
+            className="text-xs font-semibold text-primary hover:underline px-4 py-1.5 rounded-lg border border-primary/20 bg-primary/5 cursor-pointer"
+          >
+            আরও ৫০টি দেখুন (দেখাচ্ছে {Math.min(displayLimit, items.length)} / {items.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setDisplayLimit(items.length)}
+            className="text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+          >
+            সবগুলো ({items.length}টি) লোড করুন
+          </button>
+        </div>
+      )}
     </div>
   );
 }

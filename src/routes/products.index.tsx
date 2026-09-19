@@ -680,13 +680,13 @@ function Products() {
           {/* Active Filter Pills Bar */}
           {hasActiveFilters && (
             <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center gap-2 flex-wrap text-xs">
-              <span className="text-muted-foreground text-[11px] uppercase tracking-wider font-semibold mr-1">
-                Active Filters:
+              <span className="text-muted-foreground text-[11px] uppercase tracking-wider font-semibold mr-1 flex items-center gap-1">
+                <span>ফিল্টারসমূহ:</span>
               </span>
 
               {q.trim() && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  <span>Search: "{q}"</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                  <span>অনুসন্ধান: "{q}"</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -695,7 +695,8 @@ function Products() {
                         search: (prev: ProductsSearch) => ({ ...prev, q: undefined }),
                       });
                     }}
-                    className="hover:opacity-75"
+                    className="hover:opacity-75 cursor-pointer"
+                    aria-label="Remove search filter"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -703,12 +704,13 @@ function Products() {
               )}
 
               {category && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  <span>Category: {activeCategoryObj?.bengali || category}</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                  <span>ক্যাটাগরি: {activeCategoryObj?.bengali || category}</span>
                   <button
                     type="button"
                     onClick={() => setCategory(null)}
-                    className="hover:opacity-75"
+                    className="hover:opacity-75 cursor-pointer"
+                    aria-label="Remove category filter"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -716,12 +718,13 @@ function Products() {
               )}
 
               {subcategory && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  <span>Sub: {activeSubcategoryObj?.bengali || subcategory}</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                  <span>সাব-ক্যাটাগরি: {activeSubcategoryObj?.bengali || subcategory}</span>
                   <button
                     type="button"
                     onClick={() => setSubcategory(null)}
-                    className="hover:opacity-75"
+                    className="hover:opacity-75 cursor-pointer"
+                    aria-label="Remove subcategory filter"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -729,8 +732,8 @@ function Products() {
               )}
 
               {minPrice != null && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  <span>Min: {formatBDT(minPrice)}</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                  <span>সর্বনিম্ন: {formatBDT(minPrice)}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -739,7 +742,8 @@ function Products() {
                         search: (prev: ProductsSearch) => ({ ...prev, minPrice: undefined }),
                       });
                     }}
-                    className="hover:opacity-75"
+                    className="hover:opacity-75 cursor-pointer"
+                    aria-label="Remove min price filter"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -747,8 +751,8 @@ function Products() {
               )}
 
               {maxPrice != null && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  <span>Max: {formatBDT(maxPrice)}</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                  <span>সর্বোচ্চ: {formatBDT(maxPrice)}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -757,7 +761,8 @@ function Products() {
                         search: (prev: ProductsSearch) => ({ ...prev, maxPrice: undefined }),
                       });
                     }}
-                    className="hover:opacity-75"
+                    className="hover:opacity-75 cursor-pointer"
+                    aria-label="Remove max price filter"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -765,12 +770,13 @@ function Products() {
               )}
 
               {inStock && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-medium">
-                  <span>In Stock Only</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-medium">
+                  <span>শুধু ইন-স্টক পণ্য</span>
                   <button
                     type="button"
                     onClick={toggleInStock}
-                    className="hover:opacity-75"
+                    className="hover:opacity-75 cursor-pointer"
+                    aria-label="Remove in-stock filter"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -780,9 +786,9 @@ function Products() {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="inline-flex items-center gap-1 text-gold hover:underline ml-auto font-medium"
+                className="inline-flex items-center gap-1 text-gold hover:text-primary transition-colors ml-auto text-xs font-semibold"
               >
-                <RotateCcw className="w-3 h-3" /> Reset All
+                <RotateCcw className="w-3 h-3" /> সব ফিল্টার মুছুন
               </button>
             </div>
           )}
