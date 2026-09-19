@@ -1,0 +1,1 @@
+UPDATE public.site_content SET value = '' WHERE key = 'brand_logo_url';

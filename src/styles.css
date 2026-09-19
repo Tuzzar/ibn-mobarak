@@ -1,0 +1,288 @@
+/* Google Fonts loaded via <link> in src/routes/__root.tsx (lightningcss can't fetch remote @import) */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Fira Sans body, Hind Siliguri for Bengali glyphs (unicode-range subset auto-applies) */
+  --font-sans: 'Fira Sans', 'Hind Siliguri', system-ui, sans-serif;
+  /* DM Serif Display for editorial headings, Tiro Bangla for Bengali serif */
+  --font-display: 'DM Serif Display', 'Tiro Bangla', Georgia, serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-cream: var(--cream);
+  --color-emerald-deep: var(--emerald-deep);
+  --color-emerald: var(--emerald);
+  --color-ink: var(--ink);
+  --color-section-a: var(--section-a);
+  --color-section-b: var(--section-b);
+  --color-section-c: var(--section-c);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Clean Modern Art Studio (ArtLab & Ahbab Style)
+     Pure crisp white cards & slate wash background · deep charcoal/navy primary · coral & amber accents */
+
+  /* Crisp, clean slate wash background */
+  --background: oklch(0.985 0.004 250);       /* #f8fafc */
+  --foreground: oklch(0.18 0.025 260);        /* deep slate/charcoal #0f172a */
+  --ink: oklch(0.18 0.025 260);
+
+  --card: oklch(1 0 0);                       /* pure white cards #ffffff */
+  --card-foreground: oklch(0.18 0.025 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.025 260);
+
+  /* Deep charcoal/slate navy primary (#0f172a) */
+  --primary: oklch(0.19 0.03 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --emerald-deep: oklch(0.19 0.03 260);
+  --emerald: oklch(0.55 0.16 250);            /* vibrant cobalt/studio blue #2563eb */
+
+  /* Clean subtle slate secondary */
+  --secondary: oklch(0.95 0.008 250);         /* #f1f5f9 */
+  --secondary-foreground: oklch(0.20 0.03 260);
+
+  --muted: oklch(0.95 0.008 250);
+  --muted-foreground: oklch(0.48 0.02 260);   /* slate-500 #64748b */
+
+  /* Vibrant Coral/Orange accent (#ea580c / #f97316) for deals, badges & highlights */
+  --accent: oklch(0.65 0.20 38);
+  --accent-foreground: oklch(0.99 0 0);
+
+  /* Warm amber-gold (#f59e0b) for stars and ratings */
+  --gold: oklch(0.75 0.16 70);
+  --gold-foreground: oklch(0.18 0.025 260);
+
+  --cream: oklch(0.97 0.006 250);
+
+  /* Clean section washes */
+  --section-a: oklch(0.985 0.004 250);        /* #f8fafc */
+  --section-b: oklch(0.19 0.03 260);          /* deep studio slate */
+  --section-c: oklch(1 0 0);                  /* pure white */
+
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.90 0.008 250);            /* subtle slate border #e2e8f0 */
+  --input: oklch(0.90 0.008 250);
+
+  --ring: oklch(0.65 0.20 38);                /* coral focus */
+
+  /* Gradients + shadows — clean modern studio */
+  --gradient-emerald: linear-gradient(135deg, oklch(0.19 0.03 260) 0%, oklch(0.28 0.05 260) 100%);
+  --gradient-gold: linear-gradient(135deg, oklch(0.75 0.16 70) 0%, oklch(0.65 0.20 38) 100%);
+  --gradient-hero: linear-gradient(135deg, oklch(0.19 0.03 260) 0%, oklch(0.14 0.02 260) 100%);
+
+  --shadow-soft: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
+  --shadow-editorial: 0 20px 50px -15px rgba(15, 23, 42, 0.16);
+  --shadow-gold: 0 8px 24px -6px rgba(249, 115, 22, 0.3);
+}
+
+.dark {
+  --background: oklch(0.14 0.02 260);
+  --foreground: oklch(0.96 0.01 240);
+  --card: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.96 0.01 240);
+  --popover: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.96 0.01 240);
+  --primary: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.14 0.02 260);
+  --secondary: oklch(0.22 0.02 260);
+  --secondary-foreground: oklch(0.96 0.01 240);
+  --muted: oklch(0.22 0.02 260);
+  --muted-foreground: oklch(0.70 0.02 240);
+  --accent: oklch(0.68 0.20 38);
+  --accent-foreground: oklch(0.99 0 0);
+  --border: oklch(1 0 0 / 0.12);
+  --input: oklch(1 0 0 / 0.16);
+  --ring: oklch(0.68 0.20 38);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+    box-sizing: border-box;
+  }
+
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+  }
+
+  /* Bengali glyphs get slightly more breathing room with the serif */
+  :lang(bn), [lang="bn"] {
+    line-height: 1.7;
+  }
+}
+
+/* ============================================================
+   Editorial utilities — gold hairlines, magazine treatments
+   ============================================================ */
+
+@utility gold-rule {
+  display: inline-block;
+  width: 3rem;
+  height: 1px;
+  background: var(--color-gold);
+}
+
+@utility gold-rule-lg {
+  display: block;
+  width: 4.5rem;
+  height: 1px;
+  background: var(--color-gold);
+}
+
+@utility kicker {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+@utility editorial-frame {
+  position: relative;
+  padding: 0.5rem;
+  background: var(--color-card);
+  box-shadow: inset 0 0 0 1px var(--color-gold);
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee-x 40s linear infinite;
+}
+
+.animate-marquee-mobile {
+  animation: marquee-x 35s linear infinite;
+}
+
+.marquee-pause:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-rise {
+  animation: rise-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Product Detail Rich HTML Description */
+.product-rich-description {
+  color: var(--color-foreground);
+  line-height: 1.7;
+}
+.product-rich-description p {
+  margin-bottom: 0.85rem;
+}
+.product-rich-description p:last-child {
+  margin-bottom: 0;
+}
+.product-rich-description strong,
+.product-rich-description b {
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+.product-rich-description ul {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.product-rich-description ol {
+  list-style-type: decimal;
+  padding-left: 1.35rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.product-rich-description li {
+  line-height: 1.6;
+}
+.product-rich-description h1,
+.product-rich-description h2,
+.product-rich-description h3,
+.product-rich-description h4 {
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin-top: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+.product-rich-description a {
+  color: var(--color-emerald);
+  text-decoration: underline;
+}

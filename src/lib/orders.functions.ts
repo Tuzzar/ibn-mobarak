@@ -1,0 +1,153 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import type { Database, Json } from "@/integrations/supabase/types";
+
+const uuidSchema = z.string().uuid();
+
+const placeOrderSchema = z.object({
+  customer_name: z.string().trim().min(2).max(100),
+  customer_phone: z.string().trim().min(10).max(20),
+  customer_email: z.string().trim().email().optional().or(z.literal("")),
+  address: z.string().trim().min(5).max(500),
+  city: z.string().trim().min(2).max(100),
+  notes: z.string().trim().max(500).optional().or(z.literal("")),
+  items: z.array(
+    z.object({
+      id: z.string().trim().min(1).max(200),
+      quantity: z.number().int().min(1).max(1000),
+    }),
+  ).min(1).max(100),
+  delivery_fee: z.number().min(0).max(1000),
+});
+
+type ProductRow = Pick<
+  Database["public"]["Tables"]["products"]["Row"],
+  "id" | "name" | "price" | "discount_amount" | "unit" | "weight_variants"
+>;
+
+function parseItemId(rawId: string) {
+  const separator = rawId.indexOf("::");
+  const productId = separator >= 0 ? rawId.slice(0, separator) : rawId;
+  const variantLabel = separator >= 0 ? rawId.slice(separator + 2).trim() : null;
+  return { productId: uuidSchema.parse(productId), variantLabel };
+}
+
+function getVariantRow(product: ProductRow, variantLabel: string) {
+  const variants = Array.isArray(product.weight_variants) ? product.weight_variants : [];
+  const variant = variants.find((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+    return "label" in entry && String(entry.label).trim().toLowerCase() === variantLabel.trim().toLowerCase();
+  }) as Record<string, unknown> | undefined;
+  if (!variant) throw new Error(`Selected option (${variantLabel}) is not available.`);
+  const stock = Math.floor(Number(variant.stock) || 0);
+  if (stock <= 0) throw new Error(`Option ${variantLabel} is out of stock.`);
+  const price = Number(variant.price) > 0 ? Number(variant.price) : null;
+  const attribute = typeof variant.attribute === "string" ? variant.attribute : "Option";
+  return { stock, price, attribute };
+}
+
+export const placeOrder = createServerFn({ method: "POST" })
+  .validator((input: unknown) => placeOrderSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const parsedItems = data.items.map((item) => ({ ...parseItemId(item.id), quantity: item.quantity }));
+    const productIds = Array.from(new Set(parsedItems.map((item) => item.productId)));
+
+    const { data: products, error: productError } = await admin
+      .from("products")
+      .select("id, name, price, discount_amount, unit, weight_variants")
+      .in("id", productIds);
+
+    if (productError) throw new Error("Could not validate order items.");
+
+    const byId = new Map((products ?? []).map((product) => [product.id, product as ProductRow]));
+    let subtotal = 0;
+    const cleanItems = parsedItems.map((item) => {
+      const product = byId.get(item.productId);
+      if (!product) throw new Error("Selected product is not available.");
+
+      let unitPrice: number;
+      let attributeName = "Option";
+
+      if (item.variantLabel) {
+        const variantData = getVariantRow(product, item.variantLabel);
+        if (item.quantity > variantData.stock) {
+          throw new Error(`Only ${variantData.stock} pcs left for ${item.variantLabel}.`);
+        }
+        attributeName = variantData.attribute;
+        unitPrice = variantData.price ?? Math.max(Number(product.price) - Number(product.discount_amount || 0), 0);
+      } else {
+        unitPrice = Math.max(Number(product.price) - Number(product.discount_amount || 0), 0);
+      }
+
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) throw new Error("Selected product price is invalid.");
+
+      subtotal += unitPrice * item.quantity;
+      return {
+        id: product.id,
+        name: item.variantLabel ? `${product.name} (${attributeName}: ${item.variantLabel})` : product.name,
+        price: unitPrice,
+        quantity: item.quantity,
+        size: item.variantLabel || null,
+        unit: item.variantLabel || product.unit,
+      };
+    });
+
+    const total = subtotal + data.delivery_fee;
+    const { data: order, error: insertError } = await admin
+      .from("orders")
+      .insert({
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        customer_email: data.customer_email || "",
+        address: data.address,
+        city: data.city,
+        notes: data.notes || null,
+        items: cleanItems as unknown as Json,
+        subtotal,
+        delivery_fee: data.delivery_fee,
+        total,
+        status: "pending",
+      })
+      .select("id, order_no")
+      .single();
+
+    if (insertError || !order?.id) throw new Error("Could not save order.");
+
+    // Fire-and-forget courier history warm-up; never blocks order placement.
+    try {
+      const { runCourierCheck } = await import("./courier-runner.server");
+      void runCourierCheck(data.customer_phone, false).catch(() => {});
+    } catch {
+      // ignore
+    }
+
+    // Fire-and-forget Telegram alert; never blocks order placement.
+    try {
+      const { notifyOrderEvent, cancelPendingLeadAlerts } = await import("./telegram.server");
+      // Kill any queued "incomplete order" alert for this customer first.
+      await cancelPendingLeadAlerts({ phone: data.customer_phone });
+      void notifyOrderEvent({
+        kind: "order",
+        reference: order.order_no ? `#${order.order_no}` : `#${order.id.slice(0, 8)}`,
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        address: data.address,
+        city: data.city,
+        notes: data.notes || null,
+        items: cleanItems,
+        subtotal,
+        delivery_fee: data.delivery_fee,
+        total,
+        source: "web",
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
+
+
+    return { orderId: order.id, total };
+  });

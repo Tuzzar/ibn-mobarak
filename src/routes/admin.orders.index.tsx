@@ -1,0 +1,289 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { ChevronRight, Pencil, Loader2, Search, Inbox } from "lucide-react";
+import { supabase } from "@/integrations/supabase/external";
+import { formatBDT } from "@/lib/cart";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { IncompleteTab, useLeads } from "@/components/admin/IncompleteTab";
+import {
+  ORDER_STATUSES as STATUSES,
+  ORDER_STATUS_STYLES,
+  orderLabel,
+  phoneKey,
+  type AdminOrder as Order,
+  type OrderStatus as Status,
+} from "@/lib/order-admin";
+
+export const Route = createFileRoute("/admin/orders/")({
+  component: AdminOrders,
+});
+
+type CourierRow = { phone: string; success_rate: number; total_parcel: number };
+
+function AdminOrders() {
+  const [tab, setTab] = useState<"orders" | "incomplete">("orders");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
+
+  const { data: orders, isLoading } = useQuery({
+    queryKey: ["admin-orders"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+      return (data ?? []) as unknown as Order[];
+    },
+  });
+
+  const { data: leads } = useLeads();
+
+  const { data: courierMap } = useQuery({
+    queryKey: ["admin-courier-map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("courier_checks")
+        .select("phone, success_rate, total_parcel");
+      const map = new Map<string, CourierRow>();
+      for (const row of (data ?? []) as CourierRow[]) map.set(phoneKey(row.phone), row);
+      return map;
+    },
+  });
+
+  const { data: editedIds } = useQuery({
+    queryKey: ["admin-orders-edited"],
+    queryFn: async () => {
+      const { data } = await supabase.from("order_history").select("order_id");
+      return new Set((data ?? []).map((r: { order_id: string }) => r.order_id));
+    },
+  });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (orders ?? []).filter((o) => {
+      if (statusFilter !== "all" && o.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        o.customer_name.toLowerCase().includes(q) ||
+        o.customer_phone.toLowerCase().includes(q) ||
+        o.address.toLowerCase().includes(q) ||
+        o.id.toLowerCase().includes(q)
+      );
+    });
+  }, [orders, statusFilter, search]);
+
+  const pendingLeads = (leads ?? []).filter((l) => l.status === "new").length;
+  const pendingOrders = (orders ?? []).filter((o) => o.status === "pending").length;
+  const revenue = (orders ?? [])
+    .filter((o) => o.status !== "cancelled")
+    .reduce((sum, o) => sum + Number(o.total), 0);
+
+  return (
+    <div className="p-5 md:p-10">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <span className="block text-[11px] uppercase tracking-[0.28em] text-gold">Console</span>
+          <h1 className="font-display text-3xl md:text-4xl">Order Management</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            সব অর্ডার আর ইনকমপ্লিট অর্ডার একসাথে — কনফার্ম করলেই আসল অর্ডারে চলে যাবে।
+          </p>
+        </div>
+        <div className="flex gap-6 text-sm">
+          <Stat label="Orders" value={String((orders ?? []).length)} />
+          <Stat label="Pending" value={String(pendingOrders)} />
+          <Stat label="Leads" value={String(pendingLeads)} />
+          <Stat label="Revenue" value={formatBDT(revenue)} />
+        </div>
+      </header>
+
+      <div className="mt-8 flex flex-wrap items-center gap-3 border-b border-border">
+        {(
+          [
+            ["orders", `Orders (${(orders ?? []).length})`],
+            ["incomplete", `Incomplete (${(leads ?? []).length})`],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              "px-1 pb-3 text-sm tracking-wide border-b-2 -mb-px transition",
+              tab === key
+                ? "border-gold text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+
+        <div className="relative ml-auto mb-2">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, phone, address"
+            className="pl-9 pr-3 py-2 text-sm border border-input bg-background rounded-full w-64 focus:outline-none focus:ring-2 focus:ring-gold"
+          />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        {tab === "incomplete" ? (
+          <IncompleteTab search={search} />
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              {(["all", ...STATUSES] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s as "all" | Status)}
+                  className={cn(
+                    "px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] border rounded-full transition",
+                    statusFilter === s
+                      ? "border-gold bg-gold/10 text-foreground"
+                      : "border-border text-muted-foreground hover:border-gold/40",
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground py-16 justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="mt-6 bg-card border border-dashed border-border rounded-2xl p-16 text-center text-muted-foreground">
+                <Inbox className="w-6 h-6 mx-auto mb-3 opacity-60" />
+                No orders found.
+              </div>
+            ) : (
+              <div className="mt-4 overflow-x-auto border border-border rounded-2xl bg-card">
+                <table className="w-full text-sm min-w-[900px]">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-[0.16em] text-muted-foreground border-b border-border">
+                      <th className="px-4 py-3 font-medium">Order</th>
+                      <th className="px-4 py-3 font-medium">Customer</th>
+                      <th className="px-4 py-3 font-medium">Date</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium text-right">Amount</th>
+                      <th className="px-4 py-3 font-medium">Success ratio</th>
+                      <th className="px-4 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((o) => (
+                      <OrderRow
+                        key={o.id}
+                        order={o}
+                        courier={courierMap?.get(phoneKey(o.customer_phone)) ?? null}
+                        wasEdited={editedIds?.has(o.id) ?? false}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-right">
+      <div className="font-display text-xl text-primary leading-none">{value}</div>
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">{label}</div>
+    </div>
+  );
+}
+
+function SuccessRatio({ courier }: { courier: CourierRow | null }) {
+  if (!courier) return <span className="text-xs text-muted-foreground">—</span>;
+  const rate = Math.round(Number(courier.success_rate) || 0);
+  const tone = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-500" : "bg-rose-500";
+  return (
+    <div className="min-w-[120px]">
+      <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
+        <span className="font-numeric">{rate}%</span>
+        <span>{courier.total_parcel} parcels</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+        <div className={cn("h-full rounded-full", tone)} style={{ width: `${Math.min(rate, 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function OrderRow({
+  order,
+  courier,
+  wasEdited,
+}: {
+  order: Order;
+  courier: CourierRow | null;
+  wasEdited: boolean;
+}) {
+  return (
+    <tr className="border-b border-border/70 align-top hover:bg-secondary/25 transition">
+      <td className="px-4 py-4">
+        <Link
+          to="/admin/orders/$id"
+          params={{ id: order.id }}
+          className="font-numeric font-medium text-primary hover:text-gold transition"
+        >
+          {orderLabel(order)}
+        </Link>
+        <div className="text-[11px] text-muted-foreground uppercase tracking-wider mt-0.5">
+          {order.source === "recovered" ? "Recovered" : "Web"}
+        </div>
+        {wasEdited && (
+          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gold mt-1">
+            <Pencil className="w-2.5 h-2.5" /> Edited
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-4 max-w-[240px]">
+        <div className="font-medium truncate">{order.customer_name}</div>
+        <div className="text-xs text-muted-foreground font-numeric">{order.customer_phone}</div>
+        <div className="text-xs text-muted-foreground truncate">
+          {order.address}
+          {order.city ? `, ${order.city}` : ""}
+        </div>
+      </td>
+      <td className="px-4 py-4 text-xs text-muted-foreground whitespace-nowrap">
+        {new Date(order.created_at).toLocaleDateString()}
+        <div>{new Date(order.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+      </td>
+      <td className="px-4 py-4">
+        <span
+          className={cn(
+            "inline-block px-3 py-1 rounded-full border text-[11px] font-medium capitalize",
+            ORDER_STATUS_STYLES[order.status] ?? "bg-secondary text-foreground border-border",
+          )}
+        >
+          {order.status}
+        </span>
+      </td>
+      <td className="px-4 py-4 text-right font-display text-lg text-primary whitespace-nowrap">
+        {formatBDT(Number(order.total))}
+      </td>
+      <td className="px-4 py-4">
+        <SuccessRatio courier={courier} />
+      </td>
+      <td className="px-4 py-4 text-right">
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Link to="/admin/orders/$id" params={{ id: order.id }}>
+            View <ChevronRight className="w-4 h-4" />
+          </Link>
+        </Button>
+      </td>
+    </tr>
+  );
+}

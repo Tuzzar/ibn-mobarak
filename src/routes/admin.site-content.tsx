@@ -1,0 +1,1795 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Upload, Save, Image as ImageIcon, User as UserIcon, Phone as PhoneIcon, BarChart3, LayoutGrid } from "lucide-react";
+import { supabase } from "@/integrations/supabase/external";
+import { siteContentOptions, productsCategoriesOptions, allProductsSlugOptions } from "@/lib/queries";
+import { Spinner } from "@/components/site/Spinner";
+import { useAuth } from "@/lib/auth";
+import { AccordionList, SectionRow } from "@/components/admin/SectionAccordion";
+import { LogoUploader } from "@/components/admin/LogoUploader";
+import { CourierSettingsPanel } from "@/components/admin/CourierSettingsPanel";
+import { TelegramSettingsPanel } from "@/components/admin/TelegramSettingsPanel";
+import {
+  AddCustomSectionButton,
+  CustomSectionRow,
+} from "@/components/admin/CustomSectionsPanel";
+import { allHomeSectionsOptions } from "@/lib/home-sections";
+import { Eye, EyeOff } from "lucide-react";
+
+export const Route = createFileRoute("/admin/site-content")({
+  component: AdminSiteContent,
+});
+
+const FIELDS = [
+  "hero_image",
+  "hero_title_line1",
+  "hero_title_line2",
+  "hero_description",
+  "hero_featured_title",
+  "hero_featured_description",
+  "hero_category",
+  "hero_cta_label",
+  "hero_cta_href",
+  "hero_cta_hidden",
+  ...([2, 3, 4].flatMap((n) => [
+    `hero_slide_${n}_image`,
+    `hero_slide_${n}_title_line1`,
+    `hero_slide_${n}_title_line2`,
+    `hero_slide_${n}_description`,
+    `hero_slide_${n}_featured_title`,
+    `hero_slide_${n}_featured_description`,
+    `hero_slide_${n}_category`,
+  ]) as string[]),
+  "about_brand_intro_1",
+  "about_brand_intro_2",
+  "about_founder_photo",
+  "about_founder_name",
+  "about_founder_tagline",
+  "about_founder_bio",
+  "about_article_heading",
+  "about_article_body",
+  "about_pull_quote",
+  "about_pillar_1_title",
+  "about_pillar_1_desc",
+  "about_pillar_2_title",
+  "about_pillar_2_desc",
+  "about_pillar_3_title",
+  "about_pillar_3_desc",
+  "about_pillar_4_title",
+  "about_pillar_4_desc",
+  "about_stat_1_value",
+  "about_stat_1_label",
+  "about_stat_2_value",
+  "about_stat_2_label",
+  "about_stat_3_value",
+  "about_stat_3_label",
+  "contact_email",
+  "contact_phone",
+  "contact_whatsapp",
+  "contact_whatsapp_display",
+  "contact_whatsapp_message",
+  "contact_address",
+  "contact_address_full",
+  "contact_facebook_url",
+  "contact_instagram_url",
+  "contact_messenger_url",
+  "meta_pixel_id",
+  ...([1, 2, 3, 4, 5, 6].flatMap((n) => [
+    `category_${n}_image`,
+    `category_${n}_label`,
+    `category_${n}_tag`,
+    `category_${n}_target`,
+  ]) as string[]),
+  // Home — featured products section
+  "featured_kicker",
+  "featured_title",
+  // Home — popular category section
+  "popcat_kicker",
+  "popcat_title",
+  "popcat_category",
+  // Home — "What are you celebrating?" heading
+  "celebrate_heading",
+  // Home — Our Promise timeline
+  "promise_kicker",
+  "promise_title",
+  "promise_description",
+  // Home — Testimonials
+  "testimonials_kicker",
+  "testimonials_title",
+  "testimonials_description",
+  // Home — Final CTA banner
+  "cta_kicker",
+  "cta_title_line1",
+  "cta_title_line2",
+  "cta_description",
+  "cta_image",
+  "cta_badge",
+  // Home — Promise ribbon marquee items
+  "ribbon_1_title",
+  "ribbon_1_description",
+  "ribbon_2_title",
+  "ribbon_2_description",
+  "ribbon_3_title",
+  "ribbon_3_description",
+  "ribbon_4_title",
+  "ribbon_4_description",
+  // Home — Product Spotlight headings
+  "spotlight_kicker",
+  "spotlight_title",
+  // Home — Product Showcase headings
+  "showcase_kicker",
+  "showcase_title",
+  // Home — Testimonial photo cards (1-6)
+  ...([1, 2, 3, 4, 5, 6].flatMap((n) => [
+    `testimonial_${n}_image`,
+    `testimonial_${n}_name`,
+    `testimonial_${n}_location`,
+  ]) as string[]),
+  // Home — FAQ section
+  "faq_kicker",
+  "faq_title_line1",
+  "faq_title_line2",
+  "faq_description",
+  "faq_link_label",
+  ...([1, 2, 3, 4, 5].flatMap((n) => [
+    `faq_${n}_q`,
+    `faq_${n}_a`,
+  ]) as string[]),
+  // Home — Our Promise / Journey 4 steps
+  ...([1, 2, 3, 4].flatMap((n) => [
+    `journey_${n}_title`,
+    `journey_${n}_desc`,
+  ]) as string[]),
+  // Home — Final CTA banner button labels
+  "cta_button_1_label",
+  "cta_button_2_label",
+  // Home — Product Spotlight: which product to feature
+  "spotlight_product_slug",
+  // Home — built-in section visibility flags ("1" = hidden, "" = visible)
+  "section_hidden_hero",
+  "section_hidden_categories",
+  "section_hidden_home_featured",
+  "section_hidden_home_popcat",
+  "section_hidden_home_celebrate",
+  "section_hidden_home_ribbon",
+  "section_hidden_home_spotlight",
+  "section_hidden_home_showcase",
+  "section_hidden_home_promise",
+  "section_hidden_home_testimonials",
+  "section_hidden_home_cta",
+  "section_hidden_home_faq",
+  "brand_logo_url",
+  "brand_logo_scale",
+] as const;
+type FieldKey = (typeof FIELDS)[number];
+
+const MAX_IMAGE_BYTES = 500 * 1024;
+const HARD_MAX_BYTES = 5 * 1024 * 1024;
+
+async function compressImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxW = 1600;
+    const scale = Math.min(1, maxW / bitmap.width);
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/webp", 0.82),
+    );
+    if (!blob) return file;
+    if (blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, ".webp"), {
+      type: "image/webp",
+    });
+  } catch {
+    return file;
+  }
+}
+
+// Extract YouTube video ID from any common URL form
+export function extractYouTubeId(input: string): string | null {
+  if (!input) return null;
+  const s = input.trim();
+  // Already an ID (11 chars typical)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
+  try {
+    const url = new URL(s);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") {
+      return url.pathname.slice(1).split("/")[0] || null;
+    }
+    if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+      const v = url.searchParams.get("v");
+      if (v) return v;
+      const parts = url.pathname.split("/").filter(Boolean);
+      const idx = parts.findIndex((p) => p === "embed" || p === "shorts" || p === "v");
+      if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+    }
+  } catch {
+    // not a URL
+  }
+  return null;
+}
+
+/** Eye toggle for built-in home sections. Hides/shows on the public home page.
+ *  Persists immediately to `site_content` (no need to click Save). */
+function HideEye({
+  flagKey,
+  values,
+  setValues,
+}: {
+  flagKey: FieldKey;
+  values: Record<FieldKey, string>;
+  setValues: React.Dispatch<React.SetStateAction<Record<FieldKey, string>>>;
+}) {
+  const qc = useQueryClient();
+  const hidden = (values[flagKey] ?? "") === "1";
+  const toggle = async () => {
+    const next = hidden ? "" : "1";
+    setValues((v) => ({ ...v, [flagKey]: next }));
+    const { error } = await supabase
+      .from("site_content" as any)
+      .upsert({ key: flagKey, value: next }, { onConflict: "key" });
+    if (error) {
+      // revert on failure
+      setValues((v) => ({ ...v, [flagKey]: hidden ? "1" : "" }));
+      toast.error(error.message);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["site-content"] });
+    toast.success(hidden ? "Section shown on home" : "Section hidden from home");
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="p-1.5 text-foreground/60 hover:text-foreground"
+      title={hidden ? "Show on home page" : "Hide from home page"}
+    >
+      {hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+    </button>
+  );
+}
+
+function AdminSiteContent() {
+  const qc = useQueryClient();
+  const { isAdmin } = useAuth();
+  const { data: content, isLoading, error } = useQuery(siteContentOptions());
+  const { data: categories = [] } = useQuery(productsCategoriesOptions());
+  const { data: allProducts = [] } = useQuery(allProductsSlugOptions());
+  const { data: customSections = [] } = useQuery(allHomeSectionsOptions());
+  const emptyValues = () =>
+    FIELDS.reduce(
+      (acc, k) => {
+        acc[k] = "";
+        return acc;
+      },
+      {} as Record<FieldKey, string>,
+    );
+  const [values, setValues] = useState<Record<FieldKey, string>>(emptyValues);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadingFounder, setUploadingFounder] = useState(false);
+  const [uploadingSlide, setUploadingSlide] = useState<Record<number, boolean>>({});
+  const [uploadingTestimonial, setUploadingTestimonial] = useState<Record<number, boolean>>({});
+  const [uploadingCta, setUploadingCta] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const founderFileRef = useRef<HTMLInputElement>(null);
+  const slideFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const testimonialFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const ctaFileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!content) return;
+    setValues(() => {
+      const next = emptyValues();
+      FIELDS.forEach((k) => {
+        next[k] = content[k] ?? "";
+      });
+      return next;
+    });
+  }, [content]);
+
+  if (!isAdmin) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        You don't have access to manage site content.
+      </div>
+    );
+  }
+
+  const uploadTo = async (
+    file: File,
+    field: FieldKey,
+    prefix: string,
+    setBusy: (b: boolean) => void,
+    ref: React.RefObject<HTMLInputElement | null>,
+  ) => {
+    if (file.size > HARD_MAX_BYTES) {
+      toast.error("Image too large (max 5MB)");
+      return;
+    }
+    setBusy(true);
+    try {
+      const compressed = await compressImage(file);
+      if (compressed.size > MAX_IMAGE_BYTES) {
+        toast.warning(
+          `Image is ${Math.round(compressed.size / 1024)}KB — consider a smaller image for faster page load.`,
+        );
+      }
+      const ext = compressed.name.split(".").pop() || "webp";
+      const path = `site-content/${prefix}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("product-images")
+        .upload(path, compressed, { upsert: false, contentType: compressed.type });
+      if (upErr) {
+        toast.error(upErr.message);
+        return;
+      }
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      setValues((v) => ({ ...v, [field]: data.publicUrl }));
+      toast.success("Image uploaded");
+    } finally {
+      setBusy(false);
+      if (ref.current) ref.current.value = "";
+    }
+  };
+
+  const onUpload = (file: File) =>
+    uploadTo(file, "hero_image", "hero", setUploading, fileRef);
+  const onUploadFounder = (file: File) =>
+    uploadTo(file, "about_founder_photo", "founder", setUploadingFounder, founderFileRef);
+  const onUploadCta = (file: File) =>
+    uploadTo(file, "cta_image", "cta", setUploadingCta, ctaFileRef);
+  const onUploadSlide = (file: File, n: 2 | 3 | 4) => {
+    const setBusy = (b: boolean) =>
+      setUploadingSlide((s) => ({ ...s, [n]: b }));
+    const refObj = {
+      get current() {
+        return slideFileRefs.current[n];
+      },
+      set current(_v: HTMLInputElement | null) {
+        /* no-op */
+      },
+    } as React.RefObject<HTMLInputElement | null>;
+    return uploadTo(
+      file,
+      `hero_slide_${n}_image` as FieldKey,
+      `hero-slide-${n}`,
+      setBusy,
+      refObj,
+    );
+  };
+  const onUploadTestimonial = (file: File, n: 1 | 2 | 3 | 4 | 5 | 6) => {
+    const setBusy = (b: boolean) =>
+      setUploadingTestimonial((s) => ({ ...s, [n]: b }));
+    const refObj = {
+      get current() {
+        return testimonialFileRefs.current[n];
+      },
+      set current(_v: HTMLInputElement | null) {
+        /* no-op */
+      },
+    } as React.RefObject<HTMLInputElement | null>;
+    return uploadTo(
+      file,
+      `testimonial_${n}_image` as FieldKey,
+      `testimonial-${n}`,
+      setBusy,
+      refObj,
+    );
+  };
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const rows = FIELDS.map((key) => ({ key, value: values[key] ?? "" }));
+      const { error: upErr } = await supabase
+        .from("site_content" as any)
+        .upsert(rows, { onConflict: "key" });
+      if (upErr) {
+        toast.error(upErr.message);
+        return;
+      }
+      toast.success("Site content updated");
+      qc.invalidateQueries({ queryKey: ["site-content"] });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="p-5 md:p-10 max-w-3xl mx-auto">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <ImageIcon className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="font-display text-2xl md:text-3xl">Site Content</h1>
+          <p className="text-muted-foreground text-sm">Manage homepage content</p>
+        </div>
+      </div>
+
+      {isLoading && (
+        <div className="mt-8 flex justify-center py-12">
+          <Spinner className="w-6 h-6 text-primary" />
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-8 p-5 rounded-2xl bg-destructive/10 text-destructive text-sm">
+          Failed to load site content. {(error as Error).message}
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="mt-6">
+        <AddCustomSectionButton />
+        <AccordionList storageKey="admin.site-content.sectionOrder.v2">
+        <SectionRow id="branding" title="Branding" subtitle="Logo and header logo size">
+          <section className="mt-6 bg-card border border-border rounded-2xl p-5 md:p-6">
+            <LogoUploader
+              value={values.brand_logo_url ?? ""}
+              scale={values.brand_logo_scale ?? "1"}
+              onChange={(url) => setValues((v) => ({ ...v, brand_logo_url: url }))}
+              onScaleChange={(s) => setValues((v) => ({ ...v, brand_logo_scale: s }))}
+            />
+          </section>
+        </SectionRow>
+        <SectionRow id="courier" title="Courier API" subtitle="BDCourier & Steadfast fraud-check keys">
+          <CourierSettingsPanel />
+        </SectionRow>
+        <SectionRow id="telegram" title="Telegram Alerts" subtitle="নতুন ও ইনকমপ্লিট অর্ডারের নোটিফিকেশন">
+          <TelegramSettingsPanel />
+        </SectionRow>
+        <SectionRow id="hero" title="Hero Section" subtitle="Slider images, titles, featured cards" hidden={(values.section_hidden_hero ?? "") === "1"} actions={<HideEye flagKey="section_hidden_hero" values={values} setValues={setValues} />}>
+        <div className="space-y-5">
+          {/* Hero image & featured card */}
+          <section className="mt-6 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+            <h2 className="font-display text-lg">Hero image & featured card</h2>
+            <p className="text-xs text-muted-foreground -mt-4">
+              Recommended: WebP/JPG, under 500KB. Large images are auto-compressed.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <div className="w-full sm:w-56 aspect-[4/5] rounded-xl overflow-hidden bg-muted border border-border shrink-0">
+                {values.hero_image ? (
+                  <img
+                    src={values.hero_image}
+                    alt="Hero preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                    No image — fallback used
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-3 w-full">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) =>
+                    e.target.files?.[0] && onUpload(e.target.files[0])
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-full text-sm hover:bg-muted disabled:opacity-60"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploading ? "Uploading…" : "Upload new image"}
+                </button>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={values.hero_image}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, hero_image: e.target.value }))
+                    }
+                    placeholder="https://..."
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Leave blank to use the bundled default image.
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-border/60">
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    Card title
+                  </label>
+                  <input
+                    type="text"
+                    value={values.hero_featured_title}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, hero_featured_title: e.target.value }))
+                    }
+                    placeholder="King of Mangoes"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    Card description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={values.hero_featured_description}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, hero_featured_description: e.target.value }))
+                    }
+                    placeholder="Premium Himsagar, in season now"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-border/60">
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    Linked category (image & card click)
+                  </label>
+                  <select
+                    value={values.hero_category}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, hero_category: e.target.value }))
+                    }
+                    className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="">— None (not clickable) —</option>
+                    {categories.map((c: string) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Select a category to make this slide's photo and featured card link to that category's products page.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Hero text */}
+          <section className="mt-5 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+            <h2 className="font-display text-lg">Hero text</h2>
+
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Title — line 1
+              </label>
+              <input
+                type="text"
+                value={values.hero_title_line1}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, hero_title_line1: e.target.value }))
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Title — line 2 (italic accent)
+              </label>
+              <input
+                type="text"
+                value={values.hero_title_line2}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, hero_title_line2: e.target.value }))
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Description
+              </label>
+              <textarea
+                rows={4}
+                value={values.hero_description}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, hero_description: e.target.value }))
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+
+            <div className="pt-2 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                  Button label
+                </label>
+                <input
+                  type="text"
+                  value={values.hero_cta_label}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, hero_cta_label: e.target.value }))
+                  }
+                  placeholder="Shop Now"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                  Button link
+                </label>
+                <input
+                  type="text"
+                  value={values.hero_cta_href}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, hero_cta_href: e.target.value }))
+                  }
+                  placeholder="/products"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Use a path like <code>/products</code> or a full URL.
+                </p>
+              </div>
+            </div>
+            <div className="pt-3">
+              <label className="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={values.hero_cta_hidden === "1"}
+                  onChange={(e) =>
+                    setValues((v) => ({
+                      ...v,
+                      hero_cta_hidden: e.target.checked ? "1" : "",
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-border"
+                />
+                <span>Hide the button on the hero</span>
+              </label>
+            </div>
+          </section>
+
+          {/* Additional hero slides (2-4) */}
+          {([2, 3, 4] as const).map((n) => {
+            const imgKey = `hero_slide_${n}_image` as FieldKey;
+            const t1Key = `hero_slide_${n}_title_line1` as FieldKey;
+            const t2Key = `hero_slide_${n}_title_line2` as FieldKey;
+            const descKey = `hero_slide_${n}_description` as FieldKey;
+            const fTitleKey = `hero_slide_${n}_featured_title` as FieldKey;
+            const fDescKey = `hero_slide_${n}_featured_description` as FieldKey;
+            const slugKey = `hero_slide_${n}_category` as FieldKey;
+            const isUp = !!uploadingSlide[n];
+            return (
+              <section
+                key={n}
+                className="mt-5 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5"
+              >
+                <div>
+                  <h2 className="font-display text-lg">Hero slide {n}</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave image blank to skip this slide. Slides without an image will not appear in the slider.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-full sm:w-56 aspect-[4/5] rounded-xl overflow-hidden bg-muted border border-border shrink-0">
+                    {values[imgKey] ? (
+                      <img
+                        src={values[imgKey]}
+                        alt={`Hero slide ${n} preview`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs px-2 text-center">
+                        No image — slide hidden
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-3 w-full">
+                    <input
+                      ref={(el) => {
+                        slideFileRefs.current[n] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) =>
+                        e.target.files?.[0] && onUploadSlide(e.target.files[0], n)
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => slideFileRefs.current[n]?.click()}
+                      disabled={isUp}
+                      className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-full text-sm hover:bg-muted disabled:opacity-60"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {isUp ? "Uploading…" : "Upload new image"}
+                    </button>
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                        Image URL
+                      </label>
+                      <input
+                        type="text"
+                        value={values[imgKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [imgKey]: e.target.value }))
+                        }
+                        placeholder="https://..."
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60">
+                      <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                        Card title
+                      </label>
+                      <input
+                        type="text"
+                        value={values[fTitleKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [fTitleKey]: e.target.value }))
+                        }
+                        placeholder="e.g. Pure Honey"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                        Card description
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={values[fDescKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [fDescKey]: e.target.value }))
+                        }
+                        placeholder="Short tagline for the floating card"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      />
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60">
+                      <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                        Linked category (image & card click)
+                      </label>
+                      <select
+                        value={values[slugKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [slugKey]: e.target.value }))
+                        }
+                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="">— None (not clickable) —</option>
+                        {categories.map((c: string) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border/60 space-y-3">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      Title — line 1
+                    </label>
+                    <input
+                      type="text"
+                      value={values[t1Key]}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, [t1Key]: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      Title — line 2 (italic accent)
+                    </label>
+                    <input
+                      type="text"
+                      value={values[t2Key]}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, [t2Key]: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      Description
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={values[descKey]}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, [descKey]: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                </div>
+              </section>
+            );
+          })}
+        </div>
+        </SectionRow>
+
+
+        <SectionRow id="categories" title="Categories" subtitle="Curated collection cards on home" hidden={(values.section_hidden_categories ?? "") === "1"} actions={<HideEye flagKey="section_hidden_categories" values={values} setValues={setValues} />}>
+          <CategoriesEditor values={values} setValues={setValues} uploadTo={uploadTo} />
+        </SectionRow>
+
+        <SectionRow id="home-featured" title="Home — Featured Products" subtitle="Curated Edit / This Week's Favourites" hidden={(values.section_hidden_home_featured ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_featured" values={values} setValues={setValues} />}>
+          <HomeTextEditor
+            values={values}
+            setValues={setValues}
+            fields={[
+              { key: "featured_kicker", label: "Small label", placeholder: "Curated Edit" },
+              { key: "featured_title", label: "Heading", placeholder: "This Week's Favourites" },
+            ]}
+          />
+        </SectionRow>
+
+        <SectionRow id="home-popcat" title="Home — Popular Category" subtitle="Category strip under featured products" hidden={(values.section_hidden_home_popcat ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_popcat" values={values} setValues={setValues} />}>
+          <HomeTextEditor
+            values={values}
+            setValues={setValues}
+            fields={[
+              { key: "popcat_kicker", label: "Small label", placeholder: "Popular Category" },
+              { key: "popcat_title", label: "Heading", placeholder: "Decor — loved by our customers" },
+              { key: "popcat_category", label: "Category name (must match a product category)", placeholder: "Decor" },
+            ]}
+          />
+        </SectionRow>
+
+        <SectionRow id="home-celebrate" title="Home — Celebrate Heading" subtitle="'What are you celebrating?' line above category grid" hidden={(values.section_hidden_home_celebrate ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_celebrate" values={values} setValues={setValues} />}>
+          <HomeTextEditor
+            values={values}
+            setValues={setValues}
+            fields={[
+              { key: "celebrate_heading", label: "Heading", placeholder: "What are you celebrating?" },
+            ]}
+          />
+          <div className="mt-4 p-3 rounded-md bg-muted/30 border border-border flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Eai grid e top-level menu categories show hosse (max 8). Notun category add korte ba ordering change korte menu categories page e jan.
+            </p>
+            <a
+              href="/admin/menu-categories"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-full hover:bg-primary/90"
+            >
+              + Add / manage categories
+            </a>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="home-ribbon" title="Home — Promise Ribbon" subtitle="4 scrolling items in the marquee belt" hidden={(values.section_hidden_home_ribbon ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_ribbon" values={values} setValues={setValues} />}>
+          <HomeTextEditor
+            values={values}
+            setValues={setValues}
+            fields={[
+              { key: "ribbon_1_title", label: "Item 1 — title", placeholder: "Curated with Care" },
+              { key: "ribbon_1_description", label: "Item 1 — description", placeholder: "Hand-picked pieces, never random" },
+              { key: "ribbon_2_title", label: "Item 2 — title", placeholder: "Gift Wrapping Included" },
+              { key: "ribbon_2_description", label: "Item 2 — description", placeholder: "Every order beautifully boxed" },
+              { key: "ribbon_3_title", label: "Item 3 — title", placeholder: "Personalised Touch" },
+              { key: "ribbon_3_description", label: "Item 3 — description", placeholder: "Notes, names, little surprises" },
+              { key: "ribbon_4_title", label: "Item 4 — title", placeholder: "Made with Love" },
+              { key: "ribbon_4_description", label: "Item 4 — description", placeholder: "From our studio to your gift list" },
+            ]}
+          />
+        </SectionRow>
+
+        <SectionRow id="home-spotlight" title="Home — Product Spotlight" subtitle="Headings above the single-product spotlight" hidden={(values.section_hidden_home_spotlight ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_spotlight" values={values} setValues={setValues} />}>
+          <div className="space-y-5">
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "spotlight_kicker", label: "Small label", placeholder: "Product spotlight" },
+                { key: "spotlight_title", label: "Heading", placeholder: "A closer look at one of our favourites" },
+              ]}
+            />
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-3">
+              <div>
+                <h2 className="font-display text-lg">Featured product</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Konta product spotlight a dekhabe seta select korun. Khali rakhle automatically first featured product dekhabe.
+                </p>
+              </div>
+              <select
+                value={values.spotlight_product_slug ?? ""}
+                onChange={(e) => setValues((v) => ({ ...v, spotlight_product_slug: e.target.value }))}
+                className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm"
+              >
+                <option value="">— Auto (first featured) —</option>
+                {allProducts.map((p: any) => (
+                  <option key={p.id} value={p.slug}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </section>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="home-showcase" title="Home — Product Showcase" subtitle="Headings above the swipeable product slider" hidden={(values.section_hidden_home_showcase ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_showcase" values={values} setValues={setValues} />}>
+          <HomeTextEditor
+            values={values}
+            setValues={setValues}
+            fields={[
+              { key: "showcase_kicker", label: "Small label", placeholder: "In the spotlight" },
+              { key: "showcase_title", label: "Heading", placeholder: "Look closer — swipe the photos" },
+            ]}
+          />
+        </SectionRow>
+
+        <SectionRow id="home-promise" title="Home — Our Promise" subtitle="Kicker, title and intro above the 4-step timeline" hidden={(values.section_hidden_home_promise ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_promise" values={values} setValues={setValues} />}>
+          <div className="space-y-5">
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "promise_kicker", label: "Small label", placeholder: "Our Promise" },
+                { key: "promise_title", label: "Heading", placeholder: "From our studio to your gift list" },
+                { key: "promise_description", label: "Description", placeholder: "Every piece passes through a careful four-step journey…", textarea: true },
+              ]}
+            />
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "journey_1_title", label: "Step 1 — title", placeholder: "Designed" },
+                { key: "journey_1_desc", label: "Step 1 — description", placeholder: "Sketched and styled in-house…", textarea: true },
+                { key: "journey_2_title", label: "Step 2 — title", placeholder: "Crafted" },
+                { key: "journey_2_desc", label: "Step 2 — description", placeholder: "Made by hand in small batches…", textarea: true },
+                { key: "journey_3_title", label: "Step 3 — title", placeholder: "Wrapped" },
+                { key: "journey_3_desc", label: "Step 3 — description", placeholder: "Hand-tied ribbons, gift boxes…", textarea: true },
+                { key: "journey_4_title", label: "Step 4 — title", placeholder: "Delivered" },
+                { key: "journey_4_desc", label: "Step 4 — description", placeholder: "Carefully shipped across Bangladesh…", textarea: true },
+              ]}
+            />
+          </div>
+        </SectionRow>
+
+        <SectionRow id="home-testimonials" title="Home — Testimonials" subtitle="Headings above the customer photo marquee" hidden={(values.section_hidden_home_testimonials ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_testimonials" values={values} setValues={setValues} />}>
+          <div className="space-y-5">
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "testimonials_kicker", label: "Small label", placeholder: "Loved By Households" },
+                { key: "testimonials_title", label: "Heading", placeholder: "Stories from our customers" },
+                { key: "testimonials_description", label: "Description", placeholder: "Real photos shared by our customers.", textarea: true },
+              ]}
+            />
+
+            <div className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-3">
+              <div>
+                <h2 className="font-display text-lg">Customer photo cards</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Up to 6 cards. Leave the image blank to hide a card. Recommended square images.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {([1, 2, 3, 4, 5, 6] as const).map((n) => {
+                  const imgKey = `testimonial_${n}_image` as FieldKey;
+                  const nameKey = `testimonial_${n}_name` as FieldKey;
+                  const locKey = `testimonial_${n}_location` as FieldKey;
+                  const isUp = !!uploadingTestimonial[n];
+                  return (
+                    <div
+                      key={n}
+                      className="border border-border rounded-xl p-4 space-y-3 bg-background/40"
+                    >
+                      <div className="flex gap-3 items-start">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
+                          {values[imgKey] ? (
+                            <img
+                              src={values[imgKey]}
+                              alt={`Testimonial ${n}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground text-center px-1">
+                              No photo
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium mb-1">Card {n}</div>
+                          <input
+                            ref={(el) => {
+                              testimonialFileRefs.current[n] = el;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            hidden
+                            onChange={(e) =>
+                              e.target.files?.[0] &&
+                              onUploadTestimonial(e.target.files[0], n)
+                            }
+                          />
+                          <button
+                            type="button"
+                            onClick={() => testimonialFileRefs.current[n]?.click()}
+                            disabled={isUp}
+                            className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 rounded-full text-xs hover:bg-muted disabled:opacity-60"
+                          >
+                            <Upload className="w-3 h-3" />
+                            {isUp ? "Uploading…" : "Upload"}
+                          </button>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={values[imgKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [imgKey]: e.target.value }))
+                        }
+                        placeholder="Image URL"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                      <input
+                        type="text"
+                        value={values[nameKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [nameKey]: e.target.value }))
+                        }
+                        placeholder="Customer name (e.g. Tahmina R.)"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      />
+                      <input
+                        type="text"
+                        value={values[locKey]}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [locKey]: e.target.value }))
+                        }
+                        placeholder="Location (e.g. Dhanmondi, Dhaka)"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="home-cta" title="Home — Final CTA Banner" subtitle="The closing 'Build a gift…' banner" hidden={(values.section_hidden_home_cta ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_cta" values={values} setValues={setValues} />}>
+          <div className="space-y-5">
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "cta_kicker", label: "Small label", placeholder: "Curated Gift Box" },
+                { key: "cta_title_line1", label: "Heading — line 1", placeholder: "Build a gift that" },
+                { key: "cta_title_line2", label: "Heading — line 2 (italic accent)", placeholder: "feels like a hug." },
+                { key: "cta_description", label: "Description", placeholder: "Handpick the pieces, add a personal note…", textarea: true },
+                { key: "cta_badge", label: "Image overlay badge", placeholder: "Made by hand, 2026" },
+                { key: "cta_button_1_label", label: "Button 1 label (→ Products)", placeholder: "Browse Gifts" },
+                { key: "cta_button_2_label", label: "Button 2 label (→ Contact)", placeholder: "Talk to us on WhatsApp" },
+              ]}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+              <div>
+                <h2 className="font-display text-lg">Banner image</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Left-side photo of the CTA banner. Leave blank for the bundled default.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                <div className="w-full sm:w-56 aspect-[4/5] rounded-xl overflow-hidden bg-muted border border-border shrink-0">
+                  {values.cta_image ? (
+                    <img src={values.cta_image} alt="CTA preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                      No image — fallback used
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-3 w-full">
+                  <input
+                    ref={ctaFileRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) => e.target.files?.[0] && onUploadCta(e.target.files[0])}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => ctaFileRef.current?.click()}
+                    disabled={uploadingCta}
+                    className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-full text-sm hover:bg-muted disabled:opacity-60"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {uploadingCta ? "Uploading…" : "Upload new image"}
+                  </button>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={values.cta_image}
+                      onChange={(e) => setValues((v) => ({ ...v, cta_image: e.target.value }))}
+                      placeholder="https://..."
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="home-faq" title="Home — FAQ" subtitle="Headings and 5 Q&A items" hidden={(values.section_hidden_home_faq ?? "") === "1"} actions={<HideEye flagKey="section_hidden_home_faq" values={values} setValues={setValues} />}>
+          <div className="space-y-5">
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "faq_kicker", label: "Small label", placeholder: "Frequently Asked" },
+                { key: "faq_title_line1", label: "Heading — line 1", placeholder: "Everything you" },
+                { key: "faq_title_line2", label: "Heading — line 2", placeholder: "need to know" },
+                { key: "faq_description", label: "Description", placeholder: "Thoughtful answers to the questions our customers ask most.", textarea: true },
+                { key: "faq_link_label", label: "'Still curious' link label", placeholder: "Talk to us" },
+              ]}
+            />
+            <HomeTextEditor
+              values={values}
+              setValues={setValues}
+              fields={[
+                { key: "faq_1_q", label: "Q1 — question", placeholder: "Are your gifts really premium?" },
+                { key: "faq_1_a", label: "Q1 — answer", placeholder: "Yes. Every piece is made by hand…", textarea: true },
+                { key: "faq_2_q", label: "Q2 — question", placeholder: "Do you offer gift wrapping?" },
+                { key: "faq_2_a", label: "Q2 — answer", placeholder: "Absolutely — every order is beautifully wrapped…", textarea: true },
+                { key: "faq_3_q", label: "Q3 — question", placeholder: "Do you offer cash on delivery?" },
+                { key: "faq_3_a", label: "Q3 — answer", placeholder: "Absolutely. Cash on delivery is available…", textarea: true },
+                { key: "faq_4_q", label: "Q4 — question", placeholder: "How long does delivery take?" },
+                { key: "faq_4_a", label: "Q4 — answer", placeholder: "Inside Dhaka orders are typically delivered within 24 hours…", textarea: true },
+                { key: "faq_5_q", label: "Q5 — question", placeholder: "Can I order a custom or personalised gift?" },
+                { key: "faq_5_a", label: "Q5 — answer", placeholder: "Yes — message us on WhatsApp…", textarea: true },
+              ]}
+            />
+          </div>
+        </SectionRow>
+
+        <SectionRow id="about" title="Our Story Page" subtitle="Founder, brand intro, article, pillars, stats">
+        <div className="space-y-5">
+          {/* Founder photo & identity */}
+          <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <UserIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg">Founder photo & identity</h2>
+                <p className="text-xs text-muted-foreground">Shown at the top of the Our Story page.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <div className="w-full sm:w-48 aspect-[4/5] rounded-xl overflow-hidden bg-muted border border-border shrink-0">
+                {values.about_founder_photo ? (
+                  <img src={values.about_founder_photo} alt="Founder preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs text-center px-2">
+                    No photo yet
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-3 w-full">
+                <input
+                  ref={founderFileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => e.target.files?.[0] && onUploadFounder(e.target.files[0])}
+                />
+                <button
+                  type="button"
+                  onClick={() => founderFileRef.current?.click()}
+                  disabled={uploadingFounder}
+                  className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-full text-sm hover:bg-muted disabled:opacity-60"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadingFounder ? "Uploading…" : "Upload founder photo"}
+                </button>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Photo URL</label>
+                  <input
+                    type="text"
+                    value={values.about_founder_photo}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_photo: e.target.value }))}
+                    placeholder="https://..."
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="pt-2 border-t border-border/60">
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Founder name</label>
+                  <input
+                    type="text"
+                    value={values.about_founder_name}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_name: e.target.value }))}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Tagline (one line)</label>
+                  <input
+                    type="text"
+                    value={values.about_founder_tagline}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_tagline: e.target.value }))}
+                    placeholder="Calligrapher · Artist · Educator"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Short bio (1–2 lines)</label>
+                  <textarea
+                    rows={2}
+                    value={values.about_founder_bio}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_bio: e.target.value }))}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Brand intro */}
+          <section className="mt-5 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+            <h2 className="font-display text-lg">Brand intro (top of page)</h2>
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Paragraph 1</label>
+              <textarea
+                rows={3}
+                value={values.about_brand_intro_1}
+                onChange={(e) => setValues((v) => ({ ...v, about_brand_intro_1: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Paragraph 2</label>
+              <textarea
+                rows={3}
+                value={values.about_brand_intro_2}
+                onChange={(e) => setValues((v) => ({ ...v, about_brand_intro_2: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+          </section>
+
+          {/* Article */}
+          <section className="mt-5 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+            <h2 className="font-display text-lg">Founder's article</h2>
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Heading</label>
+              <input
+                type="text"
+                value={values.about_article_heading}
+                onChange={(e) => setValues((v) => ({ ...v, about_article_heading: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Body (separate paragraphs with a blank line)
+              </label>
+              <textarea
+                rows={12}
+                value={values.about_article_body}
+                onChange={(e) => setValues((v) => ({ ...v, about_article_body: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm leading-relaxed"
+              />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Pull-quote (highlighted line in the middle)
+              </label>
+              <textarea
+                rows={2}
+                value={values.about_pull_quote}
+                onChange={(e) => setValues((v) => ({ ...v, about_pull_quote: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+          </section>
+
+          {/* Pillars */}
+          <section className="mt-5 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+            <h2 className="font-display text-lg">What he does — 4 craft pillars</h2>
+            {[1, 2, 3, 4].map((n) => {
+              const tKey = `about_pillar_${n}_title` as FieldKey;
+              const dKey = `about_pillar_${n}_desc` as FieldKey;
+              return (
+                <div key={n} className="grid sm:grid-cols-3 gap-3 pt-3 border-t border-border/60 first:border-0 first:pt-0">
+                  <input
+                    type="text"
+                    value={values[tKey]}
+                    onChange={(e) => setValues((v) => ({ ...v, [tKey]: e.target.value }))}
+                    placeholder={`Pillar ${n} title`}
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    rows={2}
+                    value={values[dKey]}
+                    onChange={(e) => setValues((v) => ({ ...v, [dKey]: e.target.value }))}
+                    placeholder={`Pillar ${n} short description`}
+                    className="sm:col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              );
+            })}
+          </section>
+
+          {/* Trust stats */}
+          <section className="mt-5 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+            <h2 className="font-display text-lg">Trust stats (3 proof points)</h2>
+            {[1, 2, 3].map((n) => {
+              const vKey = `about_stat_${n}_value` as FieldKey;
+              const lKey = `about_stat_${n}_label` as FieldKey;
+              return (
+                <div key={n} className="grid sm:grid-cols-3 gap-3 pt-3 border-t border-border/60 first:border-0 first:pt-0">
+                  <input
+                    type="text"
+                    value={values[vKey]}
+                    onChange={(e) => setValues((v) => ({ ...v, [vKey]: e.target.value }))}
+                    placeholder={`Stat ${n} value (e.g. 1000+)`}
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={values[lKey]}
+                    onChange={(e) => setValues((v) => ({ ...v, [lKey]: e.target.value }))}
+                    placeholder={`Stat ${n} label`}
+                    className="sm:col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              );
+            })}
+          </section>
+        </div>
+        </SectionRow>
+
+        <SectionRow id="contact" title="Contact Info" subtitle="Phone, WhatsApp, Messenger, social URLs">
+          <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <PhoneIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg">Contact Info</h2>
+                <p className="text-xs text-muted-foreground">
+                  Shown in the footer, contact page, and WhatsApp button. Updates everywhere instantly.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Email</label>
+              <input
+                type="email"
+                value={values.contact_email}
+                onChange={(e) => setValues((v) => ({ ...v, contact_email: e.target.value }))}
+                placeholder="almiftahshop21@gmail.com"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Phone (display)</label>
+              <input
+                type="text"
+                value={values.contact_phone}
+                onChange={(e) => setValues((v) => ({ ...v, contact_phone: e.target.value }))}
+                placeholder="+880 1930-277557"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Used for the call-link too — keep the country code.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp number</label>
+                <input
+                  type="text"
+                  value={values.contact_whatsapp}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp: e.target.value }))}
+                  placeholder="8801930277557"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Digits only, with country code. No +, spaces, or dashes.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp display label</label>
+                <input
+                  type="text"
+                  value={values.contact_whatsapp_display}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp_display: e.target.value }))}
+                  placeholder="+880 1930-277557"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp pre-filled message</label>
+              <textarea
+                rows={2}
+                value={values.contact_whatsapp_message}
+                onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp_message: e.target.value }))}
+                placeholder="Hello! I'd like to know more about your premium fruits."
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Address (short — footer)</label>
+                <input
+                  type="text"
+                  value={values.contact_address}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_address: e.target.value }))}
+                  placeholder="Dhaka, Bangladesh"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Address (full — contact page)</label>
+                <input
+                  type="text"
+                  value={values.contact_address_full}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_address_full: e.target.value }))}
+                  placeholder="South Jatrabari, Dhaka"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3 pt-3 border-t border-border/60">
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Facebook URL</label>
+                <input
+                  type="url"
+                  value={values.contact_facebook_url}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_facebook_url: e.target.value }))}
+                  placeholder="https://facebook.com/yourpage"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Instagram URL</label>
+                <input
+                  type="url"
+                  value={values.contact_instagram_url}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_instagram_url: e.target.value }))}
+                  placeholder="https://instagram.com/yourpage"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Messenger URL</label>
+                <input
+                  type="url"
+                  value={values.contact_messenger_url}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_messenger_url: e.target.value }))}
+                  placeholder="https://m.me/yourpage"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+            </div>
+          </section>
+        </SectionRow>
+
+        <SectionRow id="tracking" title="Tracking" subtitle="Meta Pixel & analytics">
+        <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="font-display text-lg">Tracking & Analytics</h2>
+              <p className="text-xs text-muted-foreground">
+                Facebook / Meta Pixel for ads conversion tracking.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+              Meta Pixel ID
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={values.meta_pixel_id}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, meta_pixel_id: e.target.value.replace(/[^\d]/g, "") }))
+              }
+              placeholder="e.g. 1234567890123456"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-mono tracking-wide"
+            />
+            <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+              Khali rakhle pixel disabled thakbe — kono tracking script load hobe na.
+              Facebook <strong>Events Manager → Data Sources</strong> theke Pixel ID
+              copy kore ekhane paste korben. Save korar por public site er sob page e
+              automatic <code>PageView</code> ebong order success page e <code>Purchase</code> event
+              fire hobe.
+            </p>
+          </div>
+        </section>
+        </SectionRow>
+        {customSections
+          .slice()
+          .sort((a, b) => a.position - b.position)
+          .map((s) => (
+            <CustomSectionRow key={s.id} id={s.id} section={s} />
+          ))}
+        </AccordionList>
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="sticky bottom-0 mt-6 -mx-5 md:mx-0 px-5 md:px-0 py-4 bg-background/95 backdrop-blur border-t border-border md:border-0 md:bg-transparent flex justify-end">
+          <button
+            onClick={save}
+            disabled={saving || uploading || uploadingFounder}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full text-sm font-medium hover:bg-primary/90 transition disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type UploadFn = (
+  file: File,
+  field: FieldKey,
+  prefix: string,
+  setBusy: (b: boolean) => void,
+  ref: React.RefObject<HTMLInputElement | null>,
+) => Promise<void>;
+
+function CategoriesEditor({
+  values,
+  setValues,
+  uploadTo,
+}: {
+  values: Record<FieldKey, string>;
+  setValues: React.Dispatch<React.SetStateAction<Record<FieldKey, string>>>;
+  uploadTo: UploadFn;
+}) {
+  const { data: realCategories = [] } = useQuery(productsCategoriesOptions());
+
+  return (
+    <section className="mt-6 bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <LayoutGrid className="w-4 h-4" />
+        </div>
+        <div>
+          <h2 className="font-display text-lg">Curated Collections (Home page)</h2>
+          <p className="text-xs text-muted-foreground">
+            6 ta category card — image, label, tag ar click korle kon product category dekhabe seta set korun.
+            Image / label khali rakhle default fallback bosbe.
+          </p>
+        </div>
+      </div>
+
+      {[1, 2, 3, 4, 5, 6].map((n) => (
+        <CategoryRow
+          key={n}
+          index={n}
+          values={values}
+          setValues={setValues}
+          uploadTo={uploadTo}
+          realCategories={realCategories}
+        />
+      ))}
+    </section>
+  );
+}
+
+function CategoryRow({
+  index,
+  values,
+  setValues,
+  uploadTo,
+  realCategories,
+}: {
+  index: number;
+  values: Record<FieldKey, string>;
+  setValues: React.Dispatch<React.SetStateAction<Record<FieldKey, string>>>;
+  uploadTo: UploadFn;
+  realCategories: string[];
+}) {
+  const imageKey = `category_${index}_image` as FieldKey;
+  const labelKey = `category_${index}_label` as FieldKey;
+  const tagKey = `category_${index}_tag` as FieldKey;
+  const targetKey = `category_${index}_target` as FieldKey;
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="pt-5 border-t border-border/60 first:border-0 first:pt-0">
+      <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
+        Card {index}
+      </div>
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="w-full sm:w-40 aspect-square rounded-xl overflow-hidden bg-muted border border-border shrink-0">
+          {values[imageKey] ? (
+            <img
+              src={values[imageKey]}
+              alt={`Category ${index} preview`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs text-center px-2">
+              No image — default used
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 space-y-3 w-full">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) =>
+              e.target.files?.[0] &&
+              uploadTo(e.target.files[0], imageKey, `category-${index}`, setBusy, fileRef)
+            }
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-full text-sm hover:bg-muted disabled:opacity-60"
+          >
+            <Upload className="w-4 h-4" />
+            {busy ? "Uploading…" : "Upload image"}
+          </button>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Label (card name)
+              </label>
+              <input
+                type="text"
+                value={values[labelKey]}
+                onChange={(e) => setValues((v) => ({ ...v, [labelKey]: e.target.value }))}
+                placeholder="Fresh Fruits"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                Tag (small text)
+              </label>
+              <input
+                type="text"
+                value={values[tagKey]}
+                onChange={(e) => setValues((v) => ({ ...v, [tagKey]: e.target.value }))}
+                placeholder="Seasonal"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+              Target product category (click korle kothay jabe)
+            </label>
+            <select
+              value={values[targetKey] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [targetKey]: e.target.value }))}
+              className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              <option value="">All products (no filter)</option>
+              {realCategories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Options gulo product database theke auto load hoy.
+              {values[targetKey] && !realCategories.includes(values[targetKey]) && (
+                <>
+                  {" "}
+                  <span className="text-amber-600">Current value "{values[targetKey]}" exists in saved data but not in product DB.</span>
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reusable simple text-field group for new home-page sections ───
+type HomeTextField = {
+  key: FieldKey;
+  label: string;
+  placeholder?: string;
+  textarea?: boolean;
+};
+
+function HomeTextEditor({
+  values,
+  setValues,
+  fields,
+}: {
+  values: Record<FieldKey, string>;
+  setValues: React.Dispatch<React.SetStateAction<Record<FieldKey, string>>>;
+  fields: HomeTextField[];
+}) {
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
+      <p className="text-[11px] text-muted-foreground">
+        Khali rakhle site er default text dekhabe — kichu break hobe na.
+      </p>
+      {fields.map((f) => (
+        <div key={f.key}>
+          <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+            {f.label}
+          </label>
+          {f.textarea ? (
+            <textarea
+              rows={3}
+              value={values[f.key] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+              placeholder={f.placeholder}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            />
+          ) : (
+            <input
+              type="text"
+              value={values[f.key] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+              placeholder={f.placeholder}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
