@@ -180,7 +180,7 @@ function Checkout() {
   };
 
   return (
-    <div className="container mx-auto px-3.5 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-28 lg:pb-16">
+    <div className="container mx-auto px-3.5 sm:px-6 max-w-6xl py-6 sm:py-10 md:py-14 pb-16">
       {/* Top Breadcrumb & Header */}
       <div className="mb-5 sm:mb-8">
         <Link
@@ -267,7 +267,7 @@ function Checkout() {
                 <span>{formatBDT(subtotal)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>ডেলিভারি চার্জ ({zone === "inside" ? "ঢাকা" : "ঢাকার বাইরে"})</span>
+                <span>ডেলিভারি চার্জ ({zone === "inside" ? "ঢাকা সিটি" : "ঢাকার বাইরে"})</span>
                 <span>{formatBDT(deliveryFee)}</span>
               </div>
               <div className="flex justify-between font-bold text-foreground text-sm pt-1 border-t border-border/40">
@@ -282,6 +282,7 @@ function Checkout() {
       <form onSubmit={onSubmit} className="grid lg:grid-cols-12 gap-6 lg:gap-10">
         {/* Left Form Column */}
         <div className="lg:col-span-7 space-y-5">
+          {/* 1. Address Section */}
           <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm">
             <h2
               className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 mb-4 sm:mb-6"
@@ -416,7 +417,28 @@ function Checkout() {
             </div>
           </div>
 
-          {/* Trust Guarantees Strip */}
+          {/* 2. ORDER NOW BUTTON — RIGHT AFTER ADDRESS SECTION (AS REQUESTED) */}
+          <div className="bg-card border border-gold/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-md">
+            <div className="flex items-center justify-between mb-3 text-xs sm:text-sm pb-2.5 border-b border-border/50">
+              <span className="text-muted-foreground">মোট পরিশোধযোগ্য মূল্য:</span>
+              <span className="text-lg sm:text-xl font-bold text-primary">{formatBDT(total)}</span>
+            </div>
+
+            <button
+              disabled={submitting}
+              type="submit"
+              className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-4 px-6 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base shadow-lg transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+            >
+              {submitting && <Spinner className="w-4 h-4" />}
+              <span>{submitting ? "অর্ডার পাঠানো হচ্ছে…" : `অর্ডার নিশ্চিত করুন — ${formatBDT(total)}`}</span>
+            </button>
+
+            <p className="text-center text-[11px] sm:text-xs text-muted-foreground mt-2.5" style={{ fontFamily: "'Tiro Bangla', serif" }}>
+              🎉 কোনো অগ্রিম পেমেন্টের প্রয়োজন নেই · সম্পূর্ণ ক্যাশ অন ডেলিভারি
+            </p>
+          </div>
+
+          {/* 3. SLOGANS / TRUST GUARANTEES — AFTER THE ORDER BUTTON (AS REQUESTED) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             <div className="p-3 sm:p-3.5 rounded-xl bg-section-a/60 border border-border/70 flex items-center gap-2.5">
               <Banknote className="w-5 h-5 text-gold shrink-0" />
@@ -444,7 +466,7 @@ function Checkout() {
 
         {/* Right Desktop Order Summary Column */}
         <div className="lg:col-span-5">
-          <aside className="bg-card p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gold/40 shadow-sm lg:sticky lg:top-24">
+          <aside className="bg-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gold/40 shadow-sm lg:sticky lg:top-24 overflow-hidden">
             <span className="block text-[10px] uppercase tracking-[0.24em] text-gold mb-1 font-semibold">
               অর্ডার বিবরণী
             </span>
@@ -458,7 +480,7 @@ function Checkout() {
 
             <ul className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1 divide-y divide-border/40">
               {items.map((i) => (
-                <li key={i.id} className="pt-2.5 first:pt-0 flex justify-between items-center gap-3 text-xs sm:text-sm">
+                <li key={i.id} className="pt-2.5 first:pt-0 flex justify-between items-center gap-2.5 text-xs sm:text-sm">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     {i.image_url ? (
                       <img
@@ -478,7 +500,7 @@ function Checkout() {
                       </p>
                     </div>
                   </div>
-                  <span className="font-semibold text-foreground shrink-0">
+                  <span className="font-semibold text-foreground shrink-0 text-right">
                     {formatBDT(i.price * i.quantity)}
                   </span>
                 </li>
@@ -500,44 +522,26 @@ function Checkout() {
             </dl>
 
             <div className="border-t border-gold/30 my-4" />
-            <div className="flex justify-between items-baseline">
-              <span className="font-display text-lg sm:text-xl text-foreground">সর্বমোট মূল্য</span>
-              <span className="text-xl sm:text-2xl font-bold text-primary">{formatBDT(total)}</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-display text-base sm:text-lg text-foreground">সর্বমোট মূল্য</span>
+              <span className="text-lg sm:text-2xl font-bold text-primary break-words">
+                {formatBDT(total)}
+              </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               * কোনো অগ্রিম পেমেন্টের প্রয়োজন নেই, ডেলিভারির সময় মূল্য পরিশোধ করবেন।
             </p>
 
+            {/* Desktop Order Button */}
             <button
               disabled={submitting}
               type="submit"
-              className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3.5 rounded-full font-bold text-sm disabled:opacity-50 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+              className="hidden lg:inline-flex mt-5 w-full items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3.5 rounded-full font-bold text-sm disabled:opacity-50 transition-all shadow-md active:scale-[0.99] cursor-pointer"
             >
               {submitting && <Spinner className="w-4 h-4" />}
               {submitting ? "অর্ডার পাঠানো হচ্ছে…" : `অর্ডার নিশ্চিত করুন — ${formatBDT(total)}`}
             </button>
           </aside>
-        </div>
-
-        {/* MOBILE STICKY BOTTOM CHECKOUT BAR */}
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-md border-t border-gold/30 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]">
-          <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
-            <div>
-              <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">সর্বমোট মূল্য</span>
-              <span className="text-base sm:text-lg font-extrabold text-primary leading-tight">
-                {formatBDT(total)}
-              </span>
-              <span className="block text-[9px] text-muted-foreground">ক্যাশ অন ডেলিভারি</span>
-            </div>
-            <button
-              disabled={submitting}
-              type="submit"
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground py-3 px-4 rounded-xl font-bold text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md active:scale-95 cursor-pointer"
-            >
-              {submitting && <Spinner className="w-3.5 h-3.5" />}
-              {submitting ? "অর্ডার হচ্ছে…" : "অর্ডার নিশ্চিত করুন"}
-            </button>
-          </div>
         </div>
       </form>
     </div>
