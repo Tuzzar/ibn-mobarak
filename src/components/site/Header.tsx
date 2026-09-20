@@ -42,12 +42,10 @@ export function Header() {
   const { whatsappHref, phone, phoneHref } = useContactInfo();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [visible, setVisible] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const lastScrollYRef = useRef(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,21 +57,7 @@ export function Header() {
 
   useEffect(() => {
     const onScroll = () => {
-      const currentY = window.scrollY;
-      const lastY = lastScrollYRef.current;
-      setScrolled(currentY > 12);
-
-      // Smart reverse-scroll headroom behavior
-      if (currentY <= 50) {
-        setVisible(true);
-      } else if (currentY > lastY + 5 && currentY > 80) {
-        // Scrolling down -> hide header
-        setVisible(false);
-      } else if (currentY < lastY - 5) {
-        // Scrolling up -> reveal header instantly
-        setVisible(true);
-      }
-      lastScrollYRef.current = currentY;
+      setScrolled(window.scrollY > 10);
     };
 
     onScroll();
@@ -102,17 +86,9 @@ export function Header() {
   };
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 transition-transform duration-300 ease-out",
-        visible ? "translate-y-0" : "-translate-y-full",
-        scrolled
-          ? "backdrop-blur-md bg-background/95 border-b border-border/60 shadow-[0_4px_20px_-12px_oklch(0.22_0.04_155/0.18)]"
-          : "backdrop-blur-sm bg-background/85 border-b border-transparent",
-      )}
-    >
-      {/* Unified Luxury Announcement & Utility Strip */}
-      <div className="bg-slate-950 text-slate-100 border-b border-gold/25 text-xs select-none">
+    <>
+      {/* Unified Luxury Announcement & Utility Strip (Scrolls with page) */}
+      <div className="bg-slate-950 text-slate-100 border-b border-gold/25 text-xs select-none relative z-40">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl flex items-center justify-between h-8 sm:h-8.5 gap-4">
           {/* Animated Announcement Ticker */}
           <div className="flex-1 flex items-center justify-center md:justify-start gap-2 overflow-hidden h-6">
@@ -155,6 +131,16 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Main Navigation Bar — Top Sticky Frozen (Only on PC view: lg:sticky lg:top-0) */}
+      <header
+        className={cn(
+          "relative lg:sticky lg:top-0 z-50 transition-all duration-300 ease-out bg-background/95 backdrop-blur-md",
+          scrolled
+            ? "border-b border-border/60 shadow-[0_4px_20px_-12px_rgba(15,23,42,0.15)]"
+            : "border-b border-border/30",
+        )}
+      >
 
 
       <div className="container mx-auto max-w-7xl px-4 sm:px-6">
@@ -368,7 +354,7 @@ export function Header() {
           </div>
         </div>
       )}
-
+    </header>
 
       {/* Slide-in drawer from left for mobile + tablet */}
       <Sheet open={open} onOpenChange={setOpen}>
@@ -521,6 +507,6 @@ export function Header() {
           </SheetPrimitive.Content>
         </SheetPortal>
       </Sheet>
-    </header>
+    </>
   );
 }
