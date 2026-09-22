@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, X } from "lucide-react";
 import { useCart, formatBDT } from "@/lib/cart";
+import { siteContentOptions } from "@/lib/queries";
 import {
   Sheet,
   SheetContent,
@@ -18,6 +20,13 @@ type Props = {
 
 export function CartDrawer({ children, open, onOpenChange }: Props) {
   const { items, setQty, remove, subtotal, count } = useCart();
+  const { data: content } = useQuery(siteContentOptions());
+
+  const deliveryStripText = content?.cart_delivery_strip_text || "🚚 ডেলিভারি: ঢাকা ৳৮০ · বাইরে ৳১৩০";
+  const deliveryWeightNote = content?.cart_delivery_weight_note || "১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০ যোগ হবে";
+  const freeShippingThreshold = Number(content?.cart_free_shipping_threshold) || 2000;
+  const freeShippingNote = content?.cart_free_shipping_note || "✓ এই অর্ডারে কোনো ডেলিভারি চার্জ প্রযোজ্য হবে না।";
+  const standardShippingNote = content?.cart_standard_shipping_note || "ডেলিভারি চার্জ চেকআউটে হিসাব করা হবে (ঢাকা ৳৮০, বাইরে ৳১৩০)।";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -66,7 +75,7 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
             <div className="px-4 sm:px-6 py-2.5 bg-muted/40 border-b border-border/80">
               <div className="flex items-center justify-between text-xs font-medium">
                 <span className="text-foreground/90 flex items-center gap-1.5" style={{ fontFamily: "'Tiro Bangla', serif" }}>
-                  🚚 ডেলিভারি: ঢাকা ৳৮০ · বাইরে ৳১৩০
+                  {deliveryStripText}
                 </span>
                 <Link
                   to="/shipping-policy"
@@ -76,7 +85,7 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
                 </Link>
               </div>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                ১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০ যোগ হবে
+                {deliveryWeightNote}
               </p>
             </div>
 
@@ -153,9 +162,9 @@ export function CartDrawer({ children, open, onOpenChange }: Props) {
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                {subtotal >= 2000
-                  ? "✓ এই অর্ডারে কোনো ডেলিভারি চার্জ প্রযোজ্য হবে না।"
-                  : "ডেলিভারি চার্জ চেকআউটে হিসাব করা হবে (ঢাকা ৳৮০, বাইরে ৳১৩০)।"}
+                {subtotal >= freeShippingThreshold
+                  ? freeShippingNote
+                  : standardShippingNote}
               </p>
               <div className="flex flex-col gap-2">
                 <SheetClose asChild>

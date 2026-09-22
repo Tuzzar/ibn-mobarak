@@ -18,6 +18,8 @@ import {
   Truck,
   Gift,
   MessageCircle,
+  ShoppingBag,
+  CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
 import { siteContentOptions, productsCategoriesOptions, allProductsSlugOptions } from "@/lib/queries";
@@ -199,6 +201,23 @@ const FIELDS = [
   "product_badge_3",
   "product_badge_4",
   "product_badge_5",
+  // Cart Drawer & Free Shipping
+  "cart_delivery_strip_text",
+  "cart_delivery_weight_note",
+  "cart_free_shipping_threshold",
+  "cart_free_shipping_note",
+  "cart_standard_shipping_note",
+  // Shop / Catalog Page Header
+  "shop_hero_title",
+  "shop_hero_description",
+  "shop_badge_top",
+  "shop_badge_sub",
+  // Checkout Trust Badges & Guarantee
+  "checkout_badge_cod_text",
+  "checkout_perk_1_title",
+  "checkout_perk_1_desc",
+  "checkout_perk_2_title",
+  "checkout_perk_2_desc",
 ] as const;
 type FieldKey = (typeof FIELDS)[number];
 
@@ -535,6 +554,207 @@ function ProductPerksPreviewCard({
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CartDeliveryPreviewCard({
+  stripText,
+  weightNote,
+  threshold,
+  freeNote,
+  standardNote,
+}: {
+  stripText: string;
+  weightNote: string;
+  threshold: number;
+  freeNote: string;
+  standardNote: string;
+}) {
+  const [mockSubtotal, setMockSubtotal] = useState<number>(1450);
+  const targetThreshold = threshold || 2000;
+  const isFree = mockSubtotal >= targetThreshold;
+  const percent = Math.min(100, Math.round((mockSubtotal / targetThreshold) * 100));
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            কার্ট ড্রয়ার লাইভ প্রিভিউ (Live Cart Preview)
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span>টেস্ট সাবটোটাল: ৳{mockSubtotal}</span>
+          <button
+            type="button"
+            onClick={() => setMockSubtotal(mockSubtotal >= targetThreshold ? 1200 : targetThreshold + 250)}
+            className="text-[10px] text-primary underline ml-1 cursor-pointer font-medium"
+          >
+            {isFree ? "কমিয়ে ৳১,২০০ দেখুন" : `বাড়িয়ে ৳${targetThreshold + 250} দেখুন`}
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-card border border-border max-w-md mx-auto shadow-sm overflow-hidden text-xs">
+        <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between">
+          <div className="flex items-center gap-2 font-display text-sm font-semibold text-foreground">
+            <ShoppingBag className="w-4 h-4 text-amber-500" />
+            <span>আপনার কার্ট (২)</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">Drawer Mode</span>
+        </div>
+
+        <div className="px-4 py-2 bg-muted/40 border-b border-border/80">
+          <div className="flex items-center justify-between text-[11px] font-medium">
+            <span className="text-foreground/90 font-serif">
+              {stripText || "🚚 ডেলিভারি: ঢাকা ৳৮০ · বাইরে ৳১৩০"}
+            </span>
+            <span className="text-[10px] text-primary font-semibold">পলিসি দেখুন</span>
+          </div>
+          <p className="text-[9px] text-muted-foreground mt-0.5">
+            {weightNote || "১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০ যোগ হবে"}
+          </p>
+        </div>
+
+        <div className="px-4 py-2.5 bg-amber-500/5 border-b border-border/40">
+          <div className="flex items-center justify-between text-[10px] mb-1">
+            <span className="font-semibold text-foreground">ফ্রি ডেলিভারি প্রগ্রেস বার</span>
+            <span className="text-muted-foreground font-medium">{percent}% সম্পন্ন</span>
+          </div>
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${isFree ? "bg-emerald-500" : "bg-amber-500"}`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="p-3 flex items-center gap-3 border-b border-border/50 bg-background/50">
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium truncate text-foreground">প্রিমিয়াম অ্যাক্রিলিক কালার সেট</p>
+            <p className="text-[10px] text-muted-foreground">৳ {mockSubtotal} × ১</p>
+          </div>
+        </div>
+
+        <div className="p-4 bg-card border-t border-amber-500/30 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wider text-amber-500 font-bold">সাবটোটাল</span>
+            <span className="font-display text-sm font-bold text-primary">৳ {mockSubtotal}</span>
+          </div>
+          <div className={`p-2 rounded-lg text-[11px] leading-snug border ${
+            isFree
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+              : "bg-muted/40 text-muted-foreground border-border/60"
+          }`}>
+            {isFree
+              ? (freeNote || "✓ এই অর্ডারে কোনো ডেলিভারি চার্জ প্রযোজ্য হবে না।")
+              : (standardNote || "ডেলিভারি চার্জ চেকআউটে হিসাব করা হবে (ঢাকা ৳৮০, বাইরে ৳১৩০)।")}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShopAndCheckoutPreviewCard({
+  shopTitle,
+  shopDesc,
+  badgeTop,
+  badgeSub,
+  checkoutCod,
+  perk1Title,
+  perk1Desc,
+  perk2Title,
+  perk2Desc,
+}: {
+  shopTitle: string;
+  shopDesc: string;
+  badgeTop: string;
+  badgeSub: string;
+  checkoutCod: string;
+  perk1Title: string;
+  perk1Desc: string;
+  perk2Title: string;
+  perk2Desc: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            শপ ব্যানার ও চেকআউট প্রিভিউ (Live Banner Preview)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground">ক্যাটালগ পেজ হেডার ও চেকআউট</span>
+      </div>
+
+      <div className="rounded-xl border border-border/80 bg-[color-mix(in_oklab,var(--primary)_6%,var(--background))] p-5 relative overflow-hidden shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-lg">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+              <span>Home</span>
+              <span className="text-amber-500">/</span>
+              <span className="text-primary font-bold">Shop</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold font-display text-foreground">
+              {shopTitle || "The Art & Craft Collection"}
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {shopDesc || "ক্যানভাস, অ্যাক্রিলিক কালার, ইসলামিক ক্যালিগ্রাফি ও পেইন্টিং সামগ্রীর বিশাল সম্ভার"}
+            </p>
+          </div>
+
+          <div className="text-left sm:text-right shrink-0 border-t sm:border-t-0 sm:border-l border-border/60 pt-2 sm:pt-0 sm:pl-4">
+            <span className="block text-[10px] uppercase tracking-[0.25em] text-amber-500 font-semibold">
+              {badgeTop || "Verified Catalog"}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {badgeSub || "৩,৯০০+ আইটেম রেডি স্টক"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+            চেকআউট পেজ ট্রাস্ট প্রিভিউ
+          </span>
+          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            <CheckCircle2 className="w-3 h-3" />
+            {checkoutCod || "ক্যাশ অন ডেলিভারি (হোম ডেলিভারি)"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/70 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+            <div className="text-[11px] leading-tight min-w-0">
+              <p className="font-bold truncate text-foreground">{perk1Title || "১০০% আসল পণ্য"}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{perk1Desc || "যাচাইকৃত কোয়ালিটি"}</p>
+            </div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/70 flex items-center gap-2">
+            <Truck className="w-4 h-4 text-amber-500 shrink-0" />
+            <div className="text-[11px] leading-tight min-w-0">
+              <p className="font-bold truncate text-foreground">{perk2Title || "নিরাপদ ডেলিভারি"}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{perk2Desc || "বাবল-র‍্যাপ প্রোটেকশন"}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2127,6 +2347,280 @@ function AdminSiteContent() {
                         placeholder="Gift-Wrapped"
                         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
                       />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="cart_delivery" title="Cart & Free Delivery" subtitle="কার্ট ড্রয়ার, ডেলিভারি স্ট্রিপ ও ফ্রি ডেলিভারি অফার নোটিশ">
+          <div className="space-y-6">
+            <CartDeliveryPreviewCard
+              stripText={values.cart_delivery_strip_text}
+              weightNote={values.cart_delivery_weight_note}
+              threshold={Number(values.cart_free_shipping_threshold) || 2000}
+              freeNote={values.cart_free_shipping_note}
+              standardNote={values.cart_standard_shipping_note}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg">কার্ট ড্রয়ার ও ফ্রি ডেলিভারি অফার</h2>
+                  <p className="text-xs text-muted-foreground">
+                    কার্টের ওপরের ডেলিভারি স্ট্রিপ ও ফ্রি ডেলিভারি থ্রেশহোল্ড পরিবর্তন করুন
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-1">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    কার্ট শীর্ষ ডেলিভারি স্ট্রিপ টেক্সট
+                  </label>
+                  <input
+                    type="text"
+                    value={values.cart_delivery_strip_text}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, cart_delivery_strip_text: e.target.value }))
+                    }
+                    placeholder="🚚 ডেলিভারি: ঢাকা ৳৮০ · বাইরে ৳১৩০"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    ওজন পলিসি নোট (Weight Note)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.cart_delivery_weight_note}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, cart_delivery_weight_note: e.target.value }))
+                    }
+                    placeholder="১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০ যোগ হবে"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-border/60 grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      ফ্রি ডেলিভারি ন্যূনতম অর্ডার (টাকায়)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={values.cart_free_shipping_threshold || "2000"}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, cart_free_shipping_threshold: e.target.value }))
+                      }
+                      placeholder="2000"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      কত টাকার বেশি অর্ডারে ফ্রি ডেলিভারি সক্রিয় হবে (ডিফল্ট: 2000)
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      ফ্রি ডেলিভারি অর্জিত হলে বার্তা
+                    </label>
+                    <input
+                      type="text"
+                      value={values.cart_free_shipping_note}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, cart_free_shipping_note: e.target.value }))
+                      }
+                      placeholder="✓ এই অর্ডারে কোনো ডেলিভারি চার্জ প্রযোজ্য হবে না।"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    সাধারণ ডেলিভারি চার্জ নোট (চেকআউট বার্তা)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.cart_standard_shipping_note}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, cart_standard_shipping_note: e.target.value }))
+                    }
+                    placeholder="ডেলিভারি চার্জ চেকআউটে হিসাব করা হবে (ঢাকা ৳৮০, বাইরে ৳১৩০)।"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="shop_catalog" title="Shop Page Banner & Checkout" subtitle="শপ ক্যাটালগ হেডার, ভেরিফায়েড ব্যাজ ও চেকআউট ট্রাস্ট গ্যারান্টি">
+          <div className="space-y-6">
+            <ShopAndCheckoutPreviewCard
+              shopTitle={values.shop_hero_title}
+              shopDesc={values.shop_hero_description}
+              badgeTop={values.shop_badge_top}
+              badgeSub={values.shop_badge_sub}
+              checkoutCod={values.checkout_badge_cod_text}
+              perk1Title={values.checkout_perk_1_title}
+              perk1Desc={values.checkout_perk_1_desc}
+              perk2Title={values.checkout_perk_2_title}
+              perk2Desc={values.checkout_perk_2_desc}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <h2 className="font-display text-lg">শপ ক্যাটালগ ব্যানার ও টেক্সট</h2>
+              <p className="text-xs text-muted-foreground -mt-4">
+                ক্যাটালগ পেজের শীর্ষ ব্যানার ও চেকআউট পাতার ট্রাস্ট ব্যাজ কাস্টমাইজ করুন
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    শপ পেজ প্রধান শিরোনাম (Catalog Headline)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.shop_hero_title}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, shop_hero_title: e.target.value }))
+                    }
+                    placeholder="The Art & Craft Collection"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    শপ পেজ উপ-শিরোনাম / বিবরণী (Subtitle)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={values.shop_hero_description}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, shop_hero_description: e.target.value }))
+                    }
+                    placeholder="ক্যানভাস, অ্যাক্রিলিক কালার, ইসলামিক ক্যালিগ্রাফি ও পেইন্টিং সামগ্রীর বিশাল সম্ভার"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      ব্যানার স্ট্যাটাস ব্যাজ (Top Label)
+                    </label>
+                    <input
+                      type="text"
+                      value={values.shop_badge_top}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, shop_badge_top: e.target.value }))
+                      }
+                      placeholder="Verified Catalog"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      ব্যানার স্ট্যাটাস বিবরণী (Sub Label)
+                    </label>
+                    <input
+                      type="text"
+                      value={values.shop_badge_sub}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, shop_badge_sub: e.target.value }))
+                      }
+                      placeholder="৩,৯০০+ আইটেম রেডি স্টক"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border/60 space-y-4">
+                  <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+                    চেকআউট পেজ ট্রাস্ট ব্যাজ সেটিংস
+                  </h3>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      ক্যাশ অন ডেলিভারি ব্যাজ টেক্সট
+                    </label>
+                    <input
+                      type="text"
+                      value={values.checkout_badge_cod_text}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, checkout_badge_cod_text: e.target.value }))
+                      }
+                      placeholder="ক্যাশ অন ডেলিভারি (হোম ডেলিভারি)"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="p-3.5 rounded-xl border border-border bg-background space-y-2.5">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-amber-500" />
+                        ট্রাস্ট পারক ১ (কোয়ালিটি গ্যারান্টি)
+                      </span>
+                      <div>
+                        <label className="block text-[11px] text-muted-foreground mb-1">টাইটেল</label>
+                        <input
+                          type="text"
+                          value={values.checkout_perk_1_title}
+                          onChange={(e) => setValues((v) => ({ ...v, checkout_perk_1_title: e.target.value }))}
+                          placeholder="১০০% আসল পণ্য"
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-muted-foreground mb-1">সাবটাইটেল</label>
+                        <input
+                          type="text"
+                          value={values.checkout_perk_1_desc}
+                          onChange={(e) => setValues((v) => ({ ...v, checkout_perk_1_desc: e.target.value }))}
+                          placeholder="যাচাইকৃত কোয়ালিটি"
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-border bg-background space-y-2.5">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Truck className="w-4 h-4 text-amber-500" />
+                        ট্রাস্ট পারক ২ (প্যাকেজিং ও ডেলিভারি)
+                      </span>
+                      <div>
+                        <label className="block text-[11px] text-muted-foreground mb-1">টাইটেল</label>
+                        <input
+                          type="text"
+                          value={values.checkout_perk_2_title}
+                          onChange={(e) => setValues((v) => ({ ...v, checkout_perk_2_title: e.target.value }))}
+                          placeholder="নিরাপদ ডেলিভারি"
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-muted-foreground mb-1">সাবটাইটেল</label>
+                        <input
+                          type="text"
+                          value={values.checkout_perk_2_desc}
+                          onChange={(e) => setValues((v) => ({ ...v, checkout_perk_2_desc: e.target.value }))}
+                          placeholder="বাবল-র‍্যাপ প্রোটেকশন"
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

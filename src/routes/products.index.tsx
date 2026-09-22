@@ -33,6 +33,7 @@ import {
   productsCategoriesOptions,
   productsInfiniteOptions,
   productsSearchCountOptions,
+  siteContentOptions,
 } from "@/lib/queries";
 import { MASTER_ART_CATEGORIES, getSubcategoryBySlug } from "@/data/artCategories";
 import { formatBDT } from "@/lib/cart";
@@ -157,6 +158,7 @@ function Products() {
   const navigate = useNavigate({ from: "/products/" });
 
   const { data: categories = [] } = useQuery(productsCategoriesOptions());
+  const { data: content } = useQuery(siteContentOptions());
 
   const filterParams = useMemo(
     () => ({
@@ -407,12 +409,12 @@ function Products() {
                       ? `${activeSubcategoryObj.bengali} (${activeSubcategoryObj.name})`
                       : activeCategoryObj
                       ? `${activeCategoryObj.bengali} (${activeCategoryObj.name})`
-                      : "The Art & Craft Collection"}
+                      : (content?.shop_hero_title || "The Art & Craft Collection")}
                   </h1>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                     {activeCategoryObj
                       ? `${activeCategoryObj.description}`
-                      : "ক্যানভাস, অ্যাক্রিলিক কালার, ইসলামিক ক্যালিগ্রাফি ও পেইন্টিং সামগ্রীর বিশাল সম্ভার"}
+                      : (content?.shop_hero_description || "ক্যানভাস, অ্যাক্রিলিক কালার, ইসলামিক ক্যালিগ্রাফি ও পেইন্টিং সামগ্রীর বিশাল সম্ভার")}
                   </p>
                 </div>
               )}
@@ -423,10 +425,10 @@ function Products() {
               <span className="h-px w-8 bg-gold/60" />
               <div className="text-right">
                 <span className="block text-[10px] uppercase tracking-[0.3em] text-gold font-medium">
-                  Verified Catalog
+                  {content?.shop_badge_top || "Verified Catalog"}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  ৩,৯০০+ আইটেম রেডি স্টক
+                  {content?.shop_badge_sub || "৩,৯০০+ আইটেম রেডি স্টক"}
                 </span>
               </div>
             </div>

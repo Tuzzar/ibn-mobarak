@@ -14,8 +14,10 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
 import { useCart, formatBDT } from "@/lib/cart";
 import { placeOrder } from "@/lib/orders.functions";
+import { siteContentOptions } from "@/lib/queries";
 import { Spinner } from "@/components/site/Spinner";
 import { useIncompleteOrderTracker } from "@/hooks/use-incomplete-order";
 import { cn } from "@/lib/utils";
@@ -65,6 +67,7 @@ export const BD_DISTRICTS = [
 
 function Checkout() {
   const { items, subtotal, clear } = useCart();
+  const { data: content } = useQuery(siteContentOptions());
   const navigate = useNavigate();
   const placeOrderFn = useServerFn(placeOrder);
   const [submitting, setSubmitting] = useState(false);
@@ -204,7 +207,7 @@ function Checkout() {
           </div>
           <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-3 py-1 rounded-full w-fit">
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-            <span>ক্যাশ অন ডেলিভারি (হোম ডেলিভারি)</span>
+            <span>{content?.checkout_badge_cod_text || "ক্যাশ অন ডেলিভারি (হোম ডেলিভারি)"}</span>
           </span>
         </div>
       </div>
@@ -450,15 +453,15 @@ function Checkout() {
             <div className="p-3 sm:p-3.5 rounded-xl bg-section-a/60 border border-border/70 flex items-center gap-2.5">
               <ShieldCheck className="w-5 h-5 text-gold shrink-0" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">১০০% আসল পণ্য</p>
-                <p className="text-[11px] text-muted-foreground">যাচাইকৃত কোয়ালিটি</p>
+                <p className="font-bold text-foreground">{content?.checkout_perk_1_title || "১০০% আসল পণ্য"}</p>
+                <p className="text-[11px] text-muted-foreground">{content?.checkout_perk_1_desc || "যাচাইকৃত কোয়ালিটি"}</p>
               </div>
             </div>
             <div className="p-3 sm:p-3.5 rounded-xl bg-section-a/60 border border-border/70 flex items-center gap-2.5">
               <Truck className="w-5 h-5 text-gold shrink-0" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">নিরাপদ ডেলিভারি</p>
-                <p className="text-[11px] text-muted-foreground">বাবল-র‍্যাপ প্রোটেকশন</p>
+                <p className="font-bold text-foreground">{content?.checkout_perk_2_title || "নিরাপদ ডেলিভারি"}</p>
+                <p className="text-[11px] text-muted-foreground">{content?.checkout_perk_2_desc || "বাবল-র‍্যাপ প্রোটেকশন"}</p>
               </div>
             </div>
           </div>
