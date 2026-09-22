@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { Phone, MessageCircle, Truck } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Phone, MessageCircle } from "lucide-react";
 import { useContactInfo } from "@/lib/contact";
+import { siteContentOptions } from "@/lib/queries";
 
-const MESSAGES = [
+const DEFAULT_MESSAGES = [
   "🚚 ঢাকা ও সারা বাংলাদেশে দ্রুত ডেলিভারি (২-৪ দিন)!",
   "🎨 ১০০% অথেনটিক আর্ট মেটেরিয়ালস ও ক্যালিগ্রাফি সাপ্লাইজ",
   "⭐ ২,০০০ টাকার বেশি অর্ডারে ফ্রি ডেলিভারি সুবিধা!",
@@ -12,13 +14,37 @@ const MESSAGES = [
 export function AnnouncementBar() {
   const [index, setIndex] = useState(0);
   const contact = useContactInfo();
+  const { data: content } = useQuery({ ...siteContentOptions() });
+
+  const isEnabled = content?.announcement_bar_enabled !== "0";
+
+  const messages = useMemo(() => {
+    if (!content) return DEFAULT_MESSAGES;
+    const list = [
+      content.announcement_message_1,
+      content.announcement_message_2,
+      content.announcement_message_3,
+      content.announcement_message_4,
+    ].filter((m) => typeof m === "string" && m.trim().length > 0);
+    return list.length > 0 ? list : DEFAULT_MESSAGES;
+  }, [content]);
+
+  const speedMs = useMemo(() => {
+    const sec = Number(content?.announcement_speed_sec);
+    return sec && sec >= 1 && sec <= 30 ? sec * 1000 : 3800;
+  }, [content?.announcement_speed_sec]);
 
   useEffect(() => {
+    if (messages.length <= 1) return;
     const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % MESSAGES.length);
-    }, 3800);
+      setIndex((i) => (i + 1) % messages.length);
+    }, speedMs);
     return () => clearInterval(timer);
-  }, []);
+  }, [messages.length, speedMs]);
+
+  if (!isEnabled || messages.length === 0) return null;
+
+  const currentMessage = messages[index % messages.length];
 
   return (
     <div className="bg-primary text-primary-foreground py-1.5 px-4 text-xs">
@@ -26,7 +52,7 @@ export function AnnouncementBar() {
         <div className="flex-1 flex items-center justify-center sm:justify-start gap-2 overflow-hidden h-5">
           <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0 animate-pulse" />
           <span className="truncate font-medium transition-all duration-300">
-            {MESSAGES[index]}
+            {currentMessage}
           </span>
         </div>
 

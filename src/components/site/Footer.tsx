@@ -1,11 +1,23 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, MapPin, Phone, Mail } from "lucide-react";
 import { useContactInfo } from "@/lib/contact";
 import { useBrandLogo } from "@/lib/brand";
+import { siteContentOptions } from "@/lib/queries";
 
 export function Footer() {
   const c = useContactInfo();
   const brand = useBrandLogo();
+  const { data: content } = useQuery({ ...siteContentOptions() });
+
+  const tagline = content?.footer_tagline || "ইসলামিক আর্ট ও ক্রাফট গ্যালারি";
+  const description =
+    content?.footer_description ||
+    "প্রিমিয়াম আর্ট ও ক্যালিগ্রাফি সামগ্রী — অ্যাক্রিলিক কালার, ব্রাশ, ক্যানভাস ও ফ্রেম। সারাদেশে দ্রুত হোম ডেলিভারি।";
+  const openingHours = content?.footer_opening_hours || "Always Open · ৭ দিন খোলা";
+  const copyrightText =
+    content?.footer_copyright_text || `© ${new Date().getFullYear()} Ibn Mobarak Art Gallery`;
+
   return (
     <footer className="mt-24 border-t border-border bg-secondary/50 pb-20 lg:pb-0 overflow-hidden w-full">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl pt-16 md:pt-24">
@@ -34,11 +46,10 @@ export function Footer() {
               className="mt-6 text-2xl md:text-3xl leading-tight text-foreground/90"
               style={{ fontFamily: "'Tiro Bangla', serif" }}
             >
-              ইসলামিক আর্ট ও ক্রাফট গ্যালারি
+              {tagline}
             </p>
             <p className="mt-3 text-sm text-muted-foreground max-w-sm leading-relaxed">
-              প্রিমিয়াম আর্ট ও ক্যালিগ্রাফি সামগ্রী — অ্যাক্রিলিক কালার, ব্রাশ, ক্যানভাস ও ফ্রেম।
-              সারাদেশে দ্রুত হোম ডেলিভারি।
+              {description}
             </p>
             <div className="mt-6 h-px w-16 bg-gold" />
           </div>
@@ -67,7 +78,7 @@ export function Footer() {
                   <MapPin className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" strokeWidth={1.6} />
                   <span className="break-words">{c.address}</span>
                 </li>
-                <li className="text-muted-foreground pl-5 text-xs">Always Open · ৭ দিন খোলা</li>
+                <li className="text-muted-foreground pl-5 text-xs">{openingHours}</li>
                 <li>
                   <a href={c.phoneHref} className="inline-flex items-center gap-2 hover:text-primary transition-colors text-xs sm:text-sm">
                     <Phone className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={1.6} />
@@ -122,7 +133,7 @@ export function Footer() {
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 justify-center sm:justify-start">
             <span className="inline-flex items-center gap-2">
               <span aria-hidden className="w-1 h-1 rounded-full bg-gold" />
-              © {new Date().getFullYear()} Ibn Mobarak Art Gallery
+              {copyrightText.replace("{year}", String(new Date().getFullYear()))}
             </span>
             <span className="hidden sm:inline text-border">·</span>
             <Link to="/shipping-policy" className="hover:text-primary transition-colors">

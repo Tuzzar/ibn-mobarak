@@ -2,7 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Save, Image as ImageIcon, User as UserIcon, Phone as PhoneIcon, BarChart3, LayoutGrid } from "lucide-react";
+import {
+  Upload,
+  Save,
+  Image as ImageIcon,
+  User as UserIcon,
+  Phone as PhoneIcon,
+  BarChart3,
+  LayoutGrid,
+  Megaphone,
+  Clock,
+  Award,
+  ShieldCheck,
+  Banknote,
+  Truck,
+  Gift,
+  MessageCircle,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
 import { siteContentOptions, productsCategoriesOptions, allProductsSlugOptions } from "@/lib/queries";
 import { Spinner } from "@/components/site/Spinner";
@@ -162,6 +178,27 @@ const FIELDS = [
   "section_hidden_home_faq",
   "brand_logo_url",
   "brand_logo_scale",
+  // Top Announcement Bar
+  "announcement_bar_enabled",
+  "announcement_message_1",
+  "announcement_message_2",
+  "announcement_message_3",
+  "announcement_message_4",
+  "announcement_speed_sec",
+  // Footer
+  "footer_tagline",
+  "footer_description",
+  "footer_opening_hours",
+  "footer_copyright_text",
+  // Product Page Perks & Delivery
+  "product_delivery_notice",
+  "product_delivery_fee_summary",
+  "product_whatsapp_cta_text",
+  "product_badge_1",
+  "product_badge_2",
+  "product_badge_3",
+  "product_badge_4",
+  "product_badge_5",
 ] as const;
 type FieldKey = (typeof FIELDS)[number];
 
@@ -257,6 +294,250 @@ function HideEye({
     >
       {hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
     </button>
+  );
+}
+
+function AnnouncementPreviewCard({
+  enabled,
+  messages,
+  speed,
+}: {
+  enabled: boolean;
+  messages: string[];
+  speed: number;
+}) {
+  const activeMsgs = messages.filter((m) => m && m.trim().length > 0);
+  const displayMsgs =
+    activeMsgs.length > 0
+      ? activeMsgs
+      : [
+          "কালি ও ক্যানভাসে আধ্যাত্মিক প্রশান্তি — প্রিমিয়াম ইসলামিক ক্যালিগ্রাফি আর্ট",
+          "সারা দেশে দ্রুত ক্যাশ অন ডেলিভারি সুবিধা",
+          "অরিজিনাল আর্ট ব্র্যান্ডস ও কোয়ালিটি পণ্য",
+        ];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (displayMsgs.length <= 1) return;
+    const intervalSec = Math.max(2, speed || 5) * 1000;
+    const timer = setInterval(() => {
+      setIdx((prev) => (prev + 1) % displayMsgs.length);
+    }, intervalSec);
+    return () => clearInterval(timer);
+  }, [displayMsgs.length, speed]);
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            লাইভ প্রিভিউ (Live Preview)
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span>গতি: {speed || 5}s</span>
+          <span>•</span>
+          <span>{displayMsgs.length}টি বার্তা সক্রিয়</span>
+        </div>
+      </div>
+
+      <div
+        className={`w-full overflow-hidden transition-all duration-300 rounded-lg border ${
+          enabled
+            ? "bg-[#161616] text-[#E8DCC4] border-[#2A241C] shadow-inner"
+            : "bg-muted/60 text-muted-foreground/60 border-dashed border-border"
+        }`}
+      >
+        <div className="py-2.5 px-4 flex items-center justify-center text-center min-h-[42px]">
+          {enabled ? (
+            <p className="text-xs tracking-wide font-serif transition-all duration-300">
+              {displayMsgs[idx % displayMsgs.length]}
+            </p>
+          ) : (
+            <p className="text-xs italic text-amber-500/80">⚠️ অ্যানাউন্সমেন্ট বার বর্তমানে বন্ধ রাখা হয়েছে (Hidden on site)</p>
+          )}
+        </div>
+      </div>
+
+      {displayMsgs.length > 1 && enabled && (
+        <div className="flex items-center justify-center gap-1.5 pt-0.5">
+          {displayMsgs.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIdx(i)}
+              className={`h-1.5 rounded-full transition-all ${
+                i === idx % displayMsgs.length
+                  ? "w-5 bg-amber-500"
+                  : "w-2 bg-foreground/20 hover:bg-foreground/40"
+              }`}
+              title={`বার্তা ${i + 1} প্রদর্শন করুন`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FooterPreviewCard({
+  tagline,
+  description,
+  openingHours,
+  copyright,
+  logoUrl,
+}: {
+  tagline: string;
+  description: string;
+  openingHours: string;
+  copyright: string;
+  logoUrl?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            লাইভ ফুটার প্রিভিউ (Live Footer Preview)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground">ইউজার সাইটে ফুটার যেমন দেখাবে</span>
+      </div>
+
+      <div className="rounded-xl bg-[#111111] text-[#E0D8C8] p-5 border border-[#262118] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="space-y-1.5 max-w-sm">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-7 w-auto object-contain brightness-110" />
+            ) : (
+              <h3 className="font-serif text-base tracking-wider text-amber-500 font-bold">
+                IBN MOBARAK ART GALLERY
+              </h3>
+            )}
+            <p className="text-xs text-amber-400/90 font-medium italic">
+              {tagline || "বিশুদ্ধ রঙের স্পর্শে সৃজনশীলতার বিকাশ"}
+            </p>
+            <p className="text-xs text-[#A89F91] leading-relaxed">
+              {description || "প্রিমিয়াম কোয়ালিটি আর্ট সাপ্লাই ও ক্যালিগ্রাফি ফ্রেমের বিশ্বস্ত গ্যালারি।"}
+            </p>
+          </div>
+
+          <div className="space-y-1.5 sm:text-right">
+            <span className="text-[11px] uppercase tracking-wider text-[#A89F91] font-semibold block">
+              কাজের সময়সূচি
+            </span>
+            <div className="inline-flex items-center gap-1.5 text-xs text-[#D8CFBF] bg-[#1C1813] px-2.5 py-1 rounded-md border border-[#2A241C]">
+              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>{openingHours || "শনি - বৃহস্পতি: সকাল ১০টা - রাত ৮টা (শুক্রবার বন্ধ)"}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-[#262118] pt-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[#8C8375]">
+          <p>
+            © {new Date().getFullYear()} Ibn Mobarak Art Gallery. {copyright || "সর্বস্বত্ব সংরক্ষিত।"}
+          </p>
+          <p className="text-[10px] text-[#6A6256]">Crafted for artistic excellence</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductPerksPreviewCard({
+  whatsappCta,
+  deliveryNotice,
+  deliveryFee,
+  badges,
+}: {
+  whatsappCta: string;
+  deliveryNotice: string;
+  deliveryFee: string;
+  badges: string[];
+}) {
+  const badgeIcons = [Award, ShieldCheck, Banknote, Truck, Gift];
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            প্রোডাক্ট পেজ প্রিভিউ (Live Product Page Preview)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground">বাই-বক্সের নিচের অংশ</span>
+      </div>
+
+      <div className="rounded-xl bg-card border border-border p-4 max-w-lg mx-auto shadow-sm space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-border/50 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground text-sm">৳ ১,৪৫০</span>
+          <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded text-[11px] font-medium">
+            ইন স্টক
+          </span>
+        </div>
+
+        <div className="w-full py-2.5 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs tracking-wide flex items-center justify-center gap-2">
+          <MessageCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span>{whatsappCta || "WhatsApp এ এই পণ্য সম্পর্কে প্রশ্ন করুন"}</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3.5 py-2.5 rounded-xl border border-border/60">
+          <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+          <span className="leading-snug">
+            {deliveryNotice || "আজ অর্ডার করলে সম্ভাব্য ডেলিভারি: ১-৩ কার্যদিবসের মধ্যে (ঢাকা ১-২ দিন, ঢাকার বাইরে ২-৪ দিন)"}
+          </span>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-card border border-border/70 space-y-2 text-xs text-foreground/80">
+          <div className="flex items-start gap-2.5">
+            <Truck className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <span className="leading-snug">
+              <strong>সারা দেশে হোম ডেলিভারি:</strong>{" "}
+              {deliveryFee || "ঢাকা ৳৮০, ঢাকার বাইরে ৳১৩০ (১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০)।"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>১০০% অরিজিনাল পণ্য:</strong> যাচাইকৃত আর্ট ব্র্যান্ড ও নিরাপদ ট্রানজিট প্যাকেজিং
+            </span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Banknote className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>পণ্য হাতে পেয়ে চেক করে মূল্য পরিশোধের নিশ্চয়তা</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-5 gap-1.5 pt-1">
+          {badges.map((label, i) => {
+            const Icon = badgeIcons[i] || Award;
+            return (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-1 p-2 border border-border/70 rounded-lg bg-card text-center hover:border-amber-500/60 transition-colors"
+              >
+                <Icon className="w-4 h-4 text-amber-500" />
+                <span className="text-[10px] leading-tight text-foreground/75 font-medium">
+                  {label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -445,6 +726,137 @@ function AdminSiteContent() {
               onScaleChange={(s) => setValues((v) => ({ ...v, brand_logo_scale: s }))}
             />
           </section>
+        </SectionRow>
+
+        <SectionRow id="announcement" title="Announcement Bar" subtitle="শীর্ষ অফার ও নোটিশ টিকার (মারকুই / অ্যানাউন্সমেন্ট)">
+          <div className="space-y-6">
+            <AnnouncementPreviewCard
+              enabled={values.announcement_bar_enabled !== "false"}
+              speed={Number(values.announcement_speed_sec) || 5}
+              messages={[
+                values.announcement_message_1,
+                values.announcement_message_2,
+                values.announcement_message_3,
+                values.announcement_message_4,
+              ]}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <Megaphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg">শীর্ষ অ্যানাউন্সমেন্ট বার সেটিংস</h2>
+                  <p className="text-xs text-muted-foreground">
+                    সাইটের একদম ওপরে নোটিশ বা স্পেশাল অফার রোটেশন
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                <label className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-background cursor-pointer hover:border-foreground/30 transition">
+                  <input
+                    type="checkbox"
+                    checked={values.announcement_bar_enabled !== "false"}
+                    onChange={(e) =>
+                      setValues((v) => ({
+                        ...v,
+                        announcement_bar_enabled: e.target.checked ? "true" : "false",
+                      }))
+                    }
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <div>
+                    <span className="text-sm font-medium block">অ্যানাউন্সমেন্ট বার চালু রাখুন</span>
+                    <span className="text-xs text-muted-foreground">আনচেক করলে পুরো সাইট থেকে বারটি লুকানো থাকবে</span>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    মেসেজ পরিবর্তনের গতি (সেকেন্ড)
+                  </label>
+                  <input
+                    type="number"
+                    min={2}
+                    max={30}
+                    value={values.announcement_speed_sec || "5"}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, announcement_speed_sec: e.target.value }))
+                    }
+                    placeholder="5"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <span className="text-[11px] text-muted-foreground mt-1 block">
+                    কত সেকেন্ড পর পর বার্তা ঘুরবে (ডিফল্ট: ৫ সেকেন্ড)
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-3 border-t border-border/60">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    বার্তা ১ (Message 1 - Primary)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.announcement_message_1}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, announcement_message_1: e.target.value }))
+                    }
+                    placeholder="কালি ও ক্যানভাসে আধ্যাত্মিক প্রশান্তি — প্রিমিয়াম ইসলামিক ক্যালিগ্রাফি আর্ট"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    বার্তা ২ (Message 2 - Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.announcement_message_2}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, announcement_message_2: e.target.value }))
+                    }
+                    placeholder="সারা দেশে দ্রুত ক্যাশ অন ডেলিভারি সুবিধা"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    বার্তা ৩ (Message 3 - Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.announcement_message_3}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, announcement_message_3: e.target.value }))
+                    }
+                    placeholder="অরিজিনাল আর্ট ব্র্যান্ডস ও কোয়ালিটি পণ্য"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    বার্তা ৪ (Message 4 - Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.announcement_message_4}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, announcement_message_4: e.target.value }))
+                    }
+                    placeholder="জরুরি সহায়তায় সরাসরি কল বা WhatsApp করুন"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
         </SectionRow>
         <SectionRow id="courier" title="Courier API" subtitle="BDCourier & Steadfast fraud-check keys">
           <CourierSettingsPanel />
@@ -1509,6 +1921,218 @@ function AdminSiteContent() {
               </div>
             </div>
           </section>
+        </SectionRow>
+
+        <SectionRow id="footer" title="Footer" subtitle="ফুটার ব্র্যান্ড বার্তা, কাজের সময়সূচি ও কপিরাইট টেক্সট">
+          <div className="space-y-6">
+            <FooterPreviewCard
+              tagline={values.footer_tagline}
+              description={values.footer_description}
+              openingHours={values.footer_opening_hours}
+              copyright={values.footer_copyright_text}
+              logoUrl={values.brand_logo_url}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <h2 className="font-display text-lg">ফুটার কন্টেন্ট ও ব্র্যান্ড পরিচিতি</h2>
+              <p className="text-xs text-muted-foreground -mt-4">
+                ইউজার সাইটের নিচের ফুটারে প্রদর্শিত সকল লেখা এখান থেকে পরিবর্তন করুন।
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    ট্যাগলাইন (Tagline)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.footer_tagline}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, footer_tagline: e.target.value }))
+                    }
+                    placeholder="বিশুদ্ধ রঙের স্পর্শে সৃজনশীলতার বিকাশ"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    সংক্ষিপ্ত ব্র্যান্ড পরিচিতি (Short Description)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={values.footer_description}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, footer_description: e.target.value }))
+                    }
+                    placeholder="প্রিমিয়াম কোয়ালিটি আর্ট সাপ্লাই ও ক্যালিগ্রাফি ফ্রেমের বিশ্বস্ত গ্যালারি।"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      অফিস / শোরুম সময়সূচি (Opening Hours)
+                    </label>
+                    <input
+                      type="text"
+                      value={values.footer_opening_hours}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, footer_opening_hours: e.target.value }))
+                      }
+                      placeholder="শনি - বৃহস্পতি: সকাল ১০টা - রাত ৮টা (শুক্রবার বন্ধ)"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      কপিরাইট সমাপ্তি টেক্সট (Copyright Text)
+                    </label>
+                    <input
+                      type="text"
+                      value={values.footer_copyright_text}
+                      onChange={(e) =>
+                        setValues((v) => ({ ...v, footer_copyright_text: e.target.value }))
+                      }
+                      placeholder="সর্বস্বত্ব সংরক্ষিত।"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="product_perks" title="Product Page Delivery & Badges" subtitle="প্রোডাক্ট পেজ ডেলিভারি নোটিশ, চার্জ ও ৫টি ট্রাস্ট ব্যাজ">
+          <div className="space-y-6">
+            <ProductPerksPreviewCard
+              whatsappCta={values.product_whatsapp_cta_text}
+              deliveryNotice={values.product_delivery_notice}
+              deliveryFee={values.product_delivery_fee_summary}
+              badges={[
+                values.product_badge_1 || "Premium",
+                values.product_badge_2 || "Quality Checked",
+                values.product_badge_3 || "Cash on Delivery",
+                values.product_badge_4 || "Nationwide Delivery",
+                values.product_badge_5 || "Gift-Wrapped",
+              ]}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <h2 className="font-display text-lg">প্রোডাক্ট বিস্তারিত পেজের তথ্য ও সুবিধা</h2>
+              <p className="text-xs text-muted-foreground -mt-4">
+                যেকোনো প্রোডাক্টের বিস্তারিত পেজে বাই-বক্সের নিচের নোটিশ ও ট্রাস্ট ব্যাজ কাস্টমাইজ করুন।
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    WhatsApp পরামর্শ বাটন টেক্সট (CTA)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.product_whatsapp_cta_text}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, product_whatsapp_cta_text: e.target.value }))
+                    }
+                    placeholder="WhatsApp এ এই পণ্য সম্পর্কে প্রশ্ন করুন"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    সম্ভাব্য ডেলিভারি সময় নোটিশ (Estimated Dispatch Alert)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.product_delivery_notice}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, product_delivery_notice: e.target.value }))
+                    }
+                    placeholder="আজ অর্ডার করলে সম্ভাব্য ডেলিভারি: ১-৩ কার্যদিবসের মধ্যে (ঢাকা ১-২ দিন, ঢাকার বাইরে ২-৪ দিন)"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    হোম ডেলিভারি চার্জ বিবরণ (Delivery Fee Summary)
+                  </label>
+                  <input
+                    type="text"
+                    value={values.product_delivery_fee_summary}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, product_delivery_fee_summary: e.target.value }))
+                    }
+                    placeholder="ঢাকা ৳৮০, ঢাকার বাইরে ৳১৩০ (১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০)।"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-border/60 space-y-3">
+                  <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+                    ৫টি ট্রাস্ট ব্যাজের লেবেল (Trust Badges)
+                  </h3>
+                  <div className="grid sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-muted-foreground mb-1">ব্যাজ ১ (Award)</label>
+                      <input
+                        type="text"
+                        value={values.product_badge_1}
+                        onChange={(e) => setValues((v) => ({ ...v, product_badge_1: e.target.value }))}
+                        placeholder="Premium"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-muted-foreground mb-1">ব্যাজ ২ (Shield)</label>
+                      <input
+                        type="text"
+                        value={values.product_badge_2}
+                        onChange={(e) => setValues((v) => ({ ...v, product_badge_2: e.target.value }))}
+                        placeholder="Quality Checked"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-muted-foreground mb-1">ব্যাজ ৩ (Cash)</label>
+                      <input
+                        type="text"
+                        value={values.product_badge_3}
+                        onChange={(e) => setValues((v) => ({ ...v, product_badge_3: e.target.value }))}
+                        placeholder="Cash on Delivery"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-muted-foreground mb-1">ব্যাজ ৪ (Delivery)</label>
+                      <input
+                        type="text"
+                        value={values.product_badge_4}
+                        onChange={(e) => setValues((v) => ({ ...v, product_badge_4: e.target.value }))}
+                        placeholder="Nationwide Delivery"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-muted-foreground mb-1">ব্যাজ ৫ (Gift)</label>
+                      <input
+                        type="text"
+                        value={values.product_badge_5}
+                        onChange={(e) => setValues((v) => ({ ...v, product_badge_5: e.target.value }))}
+                        placeholder="Gift-Wrapped"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
         </SectionRow>
 
         <SectionRow id="tracking" title="Tracking" subtitle="Meta Pixel & analytics">

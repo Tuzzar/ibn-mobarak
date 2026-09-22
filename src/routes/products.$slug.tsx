@@ -28,7 +28,7 @@ import { OptimizedImage } from "@/components/site/OptimizedImage";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Spinner } from "@/components/site/Spinner";
 import { ProductDetailSkeleton } from "@/components/site/ProductDetailSkeleton";
-import { productBySlugOptions, relatedProductsOptions } from "@/lib/queries";
+import { productBySlugOptions, relatedProductsOptions, siteContentOptions } from "@/lib/queries";
 import { findSize, parseSizes, totalSizeStock } from "@/lib/sizes";
 
 export const Route = createFileRoute("/products/$slug")({
@@ -110,13 +110,6 @@ export const Route = createFileRoute("/products/$slug")({
   ),
 });
 
-const TRUST_BADGES = [
-  { icon: Award, label: "Premium" },
-  { icon: ShieldCheck, label: "Quality Checked" },
-  { icon: Banknote, label: "Cash on Delivery" },
-  { icon: Truck, label: "Nationwide Delivery" },
-  { icon: Gift, label: "Gift-Wrapped" },
-];
 
 function ProductDetail() {
   const { slug } = Route.useParams();
@@ -124,6 +117,15 @@ function ProductDetail() {
   const { add } = useCart();
   const navigate = useNavigate();
   const { data: product } = useSuspenseQuery(productBySlugOptions(slug));
+  const { data: siteContent } = useQuery(siteContentOptions());
+
+  const trustBadges = useMemo(() => [
+    { icon: Award, label: siteContent?.product_badge_1 || "Premium" },
+    { icon: ShieldCheck, label: siteContent?.product_badge_2 || "Quality Checked" },
+    { icon: Banknote, label: siteContent?.product_badge_3 || "Cash on Delivery" },
+    { icon: Truck, label: siteContent?.product_badge_4 || "Nationwide Delivery" },
+    { icon: Gift, label: siteContent?.product_badge_5 || "Gift-Wrapped" },
+  ], [siteContent]);
 
   const sizes = useMemo(
     () => parseSizes((product as any)?.weight_variants),
@@ -528,14 +530,16 @@ function ProductDetail() {
               className="w-full mt-3 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-xs tracking-wide transition-colors"
             >
               <MessageCircle className="w-4 h-4 text-emerald-500" />
-              <span>WhatsApp এ এই পণ্য সম্পর্কে প্রশ্ন করুন</span>
+              <span>{siteContent?.product_whatsapp_cta_text || "WhatsApp এ এই পণ্য সম্পর্কে প্রশ্ন করুন"}</span>
             </a>
 
             {/* Estimated Dispatch Alert */}
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3.5 py-2.5 rounded-xl border border-border/60">
               <Clock className="w-4 h-4 text-gold shrink-0" />
               <span>
-                আজ অর্ডার করলে সম্ভাব্য ডেলিভারি: <strong>১-৩ কার্যদিবসের মধ্যে</strong> (ঢাকা ১-২ দিন, ঢাকার বাইরে ২-৪ দিন)
+                {siteContent?.product_delivery_notice || (
+                  <>আজ অর্ডার করলে সম্ভাব্য ডেলিভারি: <strong>১-৩ কার্যদিবসের মধ্যে</strong> (ঢাকা ১-২ দিন, ঢাকার বাইরে ২-৪ দিন)</>
+                )}
               </span>
             </div>
           </div>
@@ -545,7 +549,7 @@ function ProductDetail() {
             <div className="flex items-center gap-2.5">
               <Truck className="w-4 h-4 text-gold shrink-0" />
               <span>
-                <strong>সারা দেশে হোম ডেলিভারি:</strong> ঢাকা ৳৮০, ঢাকার বাইরে ৳১৩০ (১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০)।
+                <strong>সারা দেশে হোম ডেলিভারি:</strong> {siteContent?.product_delivery_fee_summary || "ঢাকা ৳৮০, ঢাকার বাইরে ৳১৩০ (১ কেজি পর্যন্ত ফিক্সড, এরপর প্রতি অতিরিক্ত কেজিতে ৳২০)।"}
               </span>
             </div>
             <div className="flex items-center gap-2.5">
@@ -564,7 +568,7 @@ function ProductDetail() {
 
           {/* Trust badges */}
           <div className="mt-5 grid grid-cols-5 gap-2">
-            {TRUST_BADGES.map(({ icon: Icon, label }) => (
+            {trustBadges.map(({ icon: Icon, label }) => (
               <div
                 key={label}
                 className="flex flex-col items-center gap-1 p-2 border border-border/70 rounded-lg bg-card text-center transition-colors hover:border-gold/60"
