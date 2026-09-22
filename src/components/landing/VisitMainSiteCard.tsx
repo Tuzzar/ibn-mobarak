@@ -14,7 +14,7 @@ export function VisitMainSiteCard({ variant = "default", className = "" }: Props
   const headline = c?.landing_visit_headline?.trim() || "আমাদের মেইন সাইট থেকে ঘুরে আসুন";
   const description =
     c?.landing_visit_description?.trim() ||
-    "আরো অনেক ফ্রেশ পণ্য, অফার ও কালেকশন দেখতে আমাদের মূল ওয়েবসাইট ভিজিট করুন। একই বিশ্বাস, একই মান — পুরো রেঞ্জ এক জায়গায়।";
+    "আরো অনেক আর্ট সামগ্রী, অফার ও বিশেষ কালেকশন দেখতে আমাদের মূল ওয়েবসাইট ভিজিট করুন। একই বিশ্বাস, একই মান — পুরো রেঞ্জ এক জায়গায়।";
   const button = c?.landing_visit_button?.trim() || "মেইন সাইটে যান";
 
   if (variant === "compact") {

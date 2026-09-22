@@ -47,9 +47,9 @@ export const Route = createFileRoute("/landing/$slug")({
   head: ({ loaderData, params }) => {
     const p = loaderData?.page;
     const title = p?.seo_title || p?.hero_headline || `Order — Ibn Mobarak Art Gallery`;
-    const desc = p?.seo_description || p?.hero_subheadline || "Order fresh, hand-picked produce.";
+    const desc = p?.seo_description || p?.hero_subheadline || "প্রিমিয়াম ইসলামিক আর্ট ও ক্যালিগ্রাফি সামগ্রী — Ibn Mobarak Art Gallery";
     const img = p?.og_image_url || p?.hero_image_url || undefined;
-    const url = `https://fulbanu.lovable.app/landing/${params.slug}`;
+    const url = typeof window !== "undefined" ? window.location.href : `/landing/${params.slug}`;
     return {
       meta: [
         { title },
@@ -75,66 +75,67 @@ export const Route = createFileRoute("/landing/$slug")({
 /* ---------- Static Bangla content (fallback / decorative copy) ---------- */
 
 const DEFAULT_HERO_BULLETS = [
-  "১০০% হাতে তৈরি",
-  "গ্রামীণ কারিগরদের সরাসরি সংগ্রহ",
+  "১০০% অথেনটিক আর্ট মেটেরিয়ালস",
+  "সেরা ব্র্যান্ডের ক্যালিগ্রাফি ও পেইন্টস",
   "সারা বাংলাদেশে হোম ডেলিভারি",
-  "ক্যাশ অন ডেলিভারি",
+  "ক্যাশ অন ডেলিভারি সুবিধা",
 ];
 
-const DEFAULT_HERO_BADGE_TOP = "হ্যান্ডমেড ইন বাংলাদেশ";
-const DEFAULT_HERO_BADGE_BOTTOM = "লিমিটেড স্টক";
+const DEFAULT_HERO_BADGE_TOP = "প্রিমিয়াম কোয়ালিটি";
+const DEFAULT_HERO_BADGE_BOTTOM = "অথেনটিক আর্ট সাপ্লাই";
 
 const DEFAULT_TRUST_STRIP = [
-  { text: "হাতে তৈরি", icon: "sparkles" },
-  { text: "প্রাকৃতিক উপাদান", icon: "leaf" },
-  { text: "হোম ডেলিভারি", icon: "truck" },
+  { text: "১০০% অথেনটিক পণ্য", icon: "shield" },
+  { text: "প্রিমিয়াম কোয়ালিটি", icon: "award" },
+  { text: "সারা দেশে ডেলিভারি", icon: "truck" },
   { text: "ক্যাশ অন ডেলিভারি", icon: "wallet" },
 ];
 
 const WHY_WITHU = [
-  { t: "হাতে সেলাই", d: "প্রতিটি স্টিচ গ্রামীণ কারিগরের হাতে — কোনো মেশিন নয়।" },
-  { t: "প্রাকৃতিক উপাদান", d: "১০০% সুতি, প্রাকৃতিক রঙ — ত্বকের জন্য নিরাপদ।" },
-  { t: "ইউনিক ডিজাইন", d: "প্রতিটি পণ্যের মোটিফ আলাদা — শুধুই আপনার।" },
-  { t: "যত্নসহকারে প্যাকিং", d: "নিরাপদ প্যাকেজিংয়ে ঘরে পৌঁছে যাবে।" },
-  { t: "ন্যায্য পারিশ্রমিক", d: "কারিগরদের সরাসরি সহায়তা — কোনো মধ্যস্বত্বভোগী নেই।" },
-  { t: "টেকসই ঐতিহ্য", d: "যত্ন নিলে প্রজন্ম থেকে প্রজন্মে।" },
+  { t: "১০০% আসল পণ্য", d: "বিশ্বসেরা ব্র্যান্ডের আসল আর্ট ও ক্যালিগ্রাফি সামগ্রী।" },
+  { t: "প্রিমিয়াম কোয়ালিটি", d: "পেশাদার আর্টিস্ট ও শিক্ষার্থীদের জন্য নির্ভরযোগ্য মান।" },
+  { t: "নিরাপদ প্যাকেজিং", d: "বাবল র‍্যাপ ও শক্ত কার্টনে প্রতিটি পার্সেল সুরক্ষিত থাকে।" },
+  { t: "দ্রুত ডেলিভারি", d: "ঢাকা ও সারা বাংলাদেশে দ্রুততম সময়ে হোম ডেলিভারি।" },
+  { t: "ন্যায্য মূল্য", d: "অরিজিনাল পণ্যে সেরা ও সাশ্রয়ী দামের নিশ্চয়তা।" },
+  { t: "ক্যাশ অন ডেলিভারি", d: "পণ্য হাতে পেয়ে দেখে মূল্য পরিশোধের সুবিধা।" },
 ];
 
 const WHY_WITHU_POINTS = [
-  "বাংলাদেশের ১৫+ জেলার কারিগর",
-  "প্রতিটি কাঁথা ইউনিক",
-  "নরম ও আরামদায়ক",
-  "প্রাকৃতিক রঙ",
-  "টেকসই ও দীর্ঘস্থায়ী",
-  "পরিবেশবান্ধব",
+  "১০০% অথেনটিক ও অরিজিনাল ব্র্যান্ড",
+  "ক্যালিগ্রাফি ও ফাইন আর্টসের কমপ্লিট সল্যুশন",
+  "নিরাপদ ও টেকসই প্যাকেজিং",
+  "সারা বাংলাদেশে ক্যাশ অন ডেলিভারি",
+  "সহজ রিটার্ন ও রিপ্লেসমেন্ট পলিসি",
+  "অভিজ্ঞ কাস্টমার সাপোর্ট",
 ];
 
 const PROMISES = [
-  "অরিজিনাল হ্যান্ডমেড",
-  "প্রাকৃতিক উপাদান",
+  "১০০% অথেনটিক পণ্য",
+  "প্রফেশনাল গ্রেড মেটেরিয়ালস",
   "মান যাচাই করে প্যাকিং",
-  "৭ দিনে রিটার্ন",
-  "নিরাপদ ডেলিভারি",
+  "দ্রুত হোম ডেলিভারি",
+  "সহজ এক্সচেঞ্জ পলিসি",
 ];
 
 const JOURNEY = [
-  { n: "১", t: "অর্ডার করুন", d: "ফর্ম পূরণ করুন বা কল দিন।" },
-  { n: "২", t: "কনফার্মেশন", d: "আমরা কল দিয়ে কনফার্ম করব।" },
-  { n: "৩", t: "প্যাকিং", d: "যত্নসহকারে প্যাক করা হবে।" },
-  { n: "৪", t: "ডেলিভারি", d: "২–৫ কর্মদিবসে আপনার দরজায়।" },
+  { n: "১", t: "পছন্দের পণ্য সিলেক্ট করুন", d: "ফর্ম পূরণ করুন অথবা সরাসরি কল দিন।" },
+  { n: "২", t: "অর্ডার কনফার্মেশন", d: "আমাদের টিম কল দিয়ে আপনার অর্ডার নিশ্চিত করবে।" },
+  { n: "৩", t: "নিরাপদ প্যাকিং", d: "বাবল র‍্যাপ ও যত্নের সাথে সুরক্ষিত প্যাকিং করা হবে।" },
+  { n: "৪", t: "ডোরস্টেপ ডেলিভারি", d: "২–৩ কর্মদিবসে আপনার হাতে পৌঁছে যাবে।" },
 ];
 
 const DEFAULT_STATS = [
-  { n: "১৫+", l: "জেলার কারিগর" },
-  { n: "৫,০০০+", l: "সন্তুষ্ট পরিবার" },
-  { n: "১০০%", l: "হাতে তৈরি" },
+  { n: "১০,০০০+", l: "সন্তুষ্ট আর্টিস্ট" },
+  { n: "৩,৯০০+", l: "আর্ট ও ক্যালিগ্রাফি সামগ্রী" },
+  { n: "১০০%", l: "অথেনটিক কোয়ালিটি" },
 ];
 
 const FALLBACK_FAQ = [
-  { question: "ডেলিভারি কত দিনে পাব?", answer: "ঢাকার ভিতরে ২–৩ দিন, ঢাকার বাইরে ৩–৫ কর্মদিবস।" },
-  { question: "পেমেন্ট কীভাবে করব?", answer: "ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে টাকা দিন।" },
-  { question: "পণ্য পছন্দ না হলে?", answer: "৭ দিনের মধ্যে রিটার্ন/রিপ্লেস করা যাবে।" },
-  { question: "কাঁথা কি সত্যিই হাতে সেলাই?", answer: "জি, প্রতিটি স্টিচ গ্রামীণ কারিগরের হাতে — কোনো মেশিন ব্যবহার হয় না।" },
+  { question: "পণ্যগুলো কি ১০০% আসল?", answer: "জি, আমরা শুধুমাত্র আসল ও ব্র্যান্ডেড অথেনটিক আর্ট মেটেরিয়ালস সরবরাহ করি।" },
+  { question: "ডেলিভারি কত দিনে পাব?", answer: "ঢাকার ভিতরে ২–৩ দিন এবং ঢাকার বাইরে ৩–৫ কর্মদিবসে ডেলিভারি সম্পন্ন হয়।" },
+  { question: "ডেলিভারি চার্জ কত?", answer: "ঢাকার ভিতরে হোম ডেলিভারি চার্জ ৮০ টাকা এবং ঢাকার বাইরে ১৩০ টাকা।" },
+  { question: "পেমেন্ট কীভাবে করব?", answer: "ক্যাশ অন ডেলিভারিতে পণ্য হাতে পেয়ে দেখে মূল্য পরিশোধ করতে পারবেন। এছাড়া বিকাশ/নগদ পেমেন্টও গ্রহণযোগ্য।" },
+  { question: "পণ্য নষ্ট বা ক্ষতিগ্রস্ত হলে?", answer: "ডেলিভারিম্যানের সামনে চেক করবেন। কোনো ক্ষতি থাকলে দ্রুত আমাদের জানালে সাথে সাথে রিপ্লেস করে দেওয়া হবে।" },
 ];
 
 const pickArr = <T,>(v: T[] | null | undefined, fb: T[]): T[] =>
@@ -234,7 +235,7 @@ function LandingSlugPage() {
               </span>
             )}
             <h1 className="font-display text-[2.5rem] sm:text-5xl md:text-6xl lg:text-[4.25rem] text-foreground leading-[1.02] tracking-tight">
-              {page.hero_headline || "ফুলবানু সংগ্রহ"}
+              {page.hero_headline || "Ibn Mobarak Art Gallery"}
             </h1>
             {page.hero_subheadline && (
               <p className="mt-6 text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl border-l-2 border-accent/50 pl-4">
@@ -354,7 +355,7 @@ function LandingSlugPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-8xl bg-gradient-to-br from-secondary/30 to-primary/10">🪡</div>
+                  <div className="w-full h-full flex items-center justify-center text-8xl bg-gradient-to-br from-secondary/30 to-primary/10">🎨</div>
                 )}
                 {/* corner tag */}
                 <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/90 backdrop-blur text-[10px] font-bold uppercase tracking-[0.18em] text-foreground border border-border/60">
@@ -385,7 +386,7 @@ function LandingSlugPage() {
               wallet: <Wallet className="w-5 h-5" />,
               shield: <ShieldCheck className="w-5 h-5" />,
               leaf: <Leaf className="w-5 h-5" />,
-              sparkles: <Palette className="w-5 h-5" />,
+              palette: <Palette className="w-5 h-5" />,
               heart: <Heart className="w-5 h-5" />,
               award: <Award className="w-5 h-5" />,
               scissors: <Scissors className="w-5 h-5" />,
@@ -410,10 +411,15 @@ function LandingSlugPage() {
 
       {/* ============ VIDEO SHOWCASE ============ */}
       {(() => {
-        const sources = [
-          ...(page.video_urls?.split(/\r?\n/) ?? []),
-          ...(page.video_url?.split(/\r?\n/) ?? []),
-        ];
+        const rawUrls = Array.isArray(page.video_urls)
+          ? (page.video_urls as string[])
+          : typeof page.video_urls === "string"
+            ? (page.video_urls as string).split(/\r?\n/)
+            : [];
+        const singleUrls = typeof page.video_url === "string"
+          ? page.video_url.split(/\r?\n/)
+          : [];
+        const sources = [...rawUrls, ...singleUrls];
         const ids = sources
           .map((s) => s.trim())
           .filter(Boolean)
@@ -470,10 +476,10 @@ function LandingSlugPage() {
       )}
 
 
-      {/* ============ WHY NUQTAH ============ */}
+      {/* ============ WHY CHOOSE US ============ */}
       <section className="bg-background/60 py-16 border-y border-border/60">
         <div className="max-w-6xl mx-auto px-4">
-          <SectionHeading kicker={pickStr(page.features_kicker, "⭐ কেন Ibn Mobarak Art Gallery?")} title={pickStr(page.features_title, "আমরা শুধু পণ্য নয় — পৌঁছে দিই ঐতিহ্যের ছোঁয়া")} />
+          <SectionHeading kicker={pickStr(page.features_kicker, "কেন Ibn Mobarak Art Gallery?")} title={pickStr(page.features_title, "আমরা পৌঁছে দিই নিখুঁত সৃজনশীলতার অনুভূতি")} />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
             {features.map((f, i) => {
               const Icon = [Palette, Heart, Award, Scissors, Gem, Package][i % 6];
@@ -494,12 +500,12 @@ function LandingSlugPage() {
         </div>
       </section>
 
-      {/* ============ WHY AMRAPALI ============ */}
+      {/* ============ PRODUCT HIGHLIGHTS ============ */}
       <section className="max-w-6xl mx-auto px-4 py-16 grid md:grid-cols-12 gap-8 md:gap-12 items-center">
         <div className="md:col-span-7 md:order-2">
           <div className="relative">
             <div aria-hidden className="absolute -top-6 -left-3 font-display text-7xl md:text-9xl text-primary/10 leading-none select-none">"</div>
-            <SectionHeading kicker={pickStr(page.amrapali_kicker, "✨ আমাদের গল্প")} title={pickStr(page.amrapali_title, "ফুলবানু — ঐতিহ্যকে ঘরে ঘরে")} align="left" />
+            <SectionHeading kicker={pickStr(page.amrapali_kicker, "আমাদের বিশেষত্ব")} title={pickStr(page.amrapali_title, "প্রিমিয়াম ক্যালিগ্রাফি ও আর্ট সামগ্রী")} align="left" />
           </div>
           <ul className="mt-4 divide-y divide-border/60 border-y border-border/60">
             {pickArr(page.amrapali_points, WHY_WITHU_POINTS).map((t, i) => (
@@ -516,10 +522,10 @@ function LandingSlugPage() {
             {product?.image_url ? (
               <img src={product.image_url} alt={product?.name || "Ibn Mobarak Art Gallery"} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[10rem]">🧵</div>
+              <div className="w-full h-full flex items-center justify-center text-[10rem]">🖌️</div>
             )}
             <div className="absolute bottom-4 left-4 right-4 bg-background/90 backdrop-blur rounded-2xl px-4 py-3 border border-border">
-              <div className="text-[10px] uppercase tracking-widest text-primary font-bold">Heritage Craft</div>
+              <div className="text-[10px] uppercase tracking-widest text-primary font-bold">Authentic Art Supplies</div>
               <div className="font-display text-sm text-foreground mt-0.5 truncate">{product?.name || "Ibn Mobarak Art Gallery Studio"}</div>
             </div>
           </div>
@@ -592,7 +598,7 @@ function LandingSlugPage() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="rounded-3xl bg-gradient-to-br from-primary to-secondary text-primary-foreground p-8 md:p-12 shadow-2xl">
             <div className="text-center mb-8">
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">{pickStr(page.stats_kicker, "📊 সংখ্যায় ফুলবানু")}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">{pickStr(page.stats_kicker, "সংখ্যায় আমাদের অর্জন")}</div>
               <h3 className="font-display text-2xl md:text-3xl mt-1">{pickStr(page.stats_title, "আমাদের যাত্রার গল্প")}</h3>
             </div>
             <div className="grid grid-cols-3 gap-3 sm:gap-6 text-center">
@@ -635,7 +641,7 @@ function LandingSlugPage() {
             <div className="text-center mb-6">
               <div className="text-xs font-bold uppercase tracking-widest text-secondary">{pickStr(page.final_cta_kicker, "🚚 এখনই অর্ডার করুন")}</div>
               <h2 className="font-display text-3xl md:text-4xl mt-2">{pickStr(page.final_cta_title, "আজকের স্টক সীমিত")}</h2>
-              <p className="text-sm opacity-80 mt-2">{pickStr(page.final_cta_description, "প্রতিটি কাঁথা হাতে তৈরি, তাই সংখ্যা সীমিত — আজই অর্ডার নিশ্চিত করুন।")}</p>
+              <p className="text-sm opacity-80 mt-2">{pickStr(page.final_cta_description, "সৃজনশীল শিল্পচর্চায় প্রিমিয়াম ও অথেনটিক আর্ট সামগ্রী সংগ্রহ করতে আজই অর্ডার করুন।")}</p>
             </div>
 
             {product && (
@@ -646,7 +652,7 @@ function LandingSlugPage() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="font-display text-lg md:text-xl text-foreground">{product.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{page.quantity_note?.trim() || "প্রতিটি পণ্য হাতে তৈরি ও ইউনিক"}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{page.quantity_note?.trim() || "১০০% অথেনটিক ও অরিজিনাল পণ্য"}</div>
                   </div>
                 </div>
 

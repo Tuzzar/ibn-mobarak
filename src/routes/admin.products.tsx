@@ -59,6 +59,13 @@ const empty: Product = {
 
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+const getProductStock = (p: any): number => {
+  if (!p) return 0;
+  const sizes = parseSizes(p.weight_variants);
+  if (sizes.length > 0) return totalSizeStock(sizes);
+  return Number(p.stock) || 0;
+};
+
 function AdminProducts() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Product | null>(null);
@@ -69,19 +76,35 @@ function AdminProducts() {
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { count, error: countErr } = await supabase
         .from("products")
-        .select("*")
-        .order("product_level", { ascending: true })
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
-      return data ?? [];
+        .select("id", { count: "exact", head: true });
+
+      if (countErr) throw countErr;
+      const total = count || 0;
+      const BATCH_SIZE = 1000;
+      const promises = [];
+
+      for (let from = 0; from < total; from += BATCH_SIZE) {
+        promises.push(
+          supabase
+            .from("products")
+            .select("*")
+            .order("product_level", { ascending: true })
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: false })
+            .range(from, from + BATCH_SIZE - 1)
+        );
+      }
+
+      const results = await Promise.all(promises);
+      return results.flatMap((r) => r.data ?? []);
     },
   });
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedStock, setSelectedStock] = useState<"all" | "in" | "out">("all");
+  const [selectedStock, setSelectedStock] = useState<"all" | "in" | "low" | "out">("all");
   const [selectedLevel, setSelectedLevel] = useState<"all" | Level>("all");
 
   const categories = useMemo(() => {
@@ -94,15 +117,17 @@ function AdminProducts() {
 
   const stats = useMemo(() => {
     let inStock = 0;
+    let lowStock = 0;
     let outStock = 0;
     let featured = 0;
     (products ?? []).forEach((p: any) => {
-      const isAvailable = (Number(p.stock) || 0) > 0 || totalSizeStock(parseSizes(p.weight_variants)) > 0;
-      if (isAvailable) inStock++;
-      else outStock++;
+      const s = getProductStock(p);
+      if (s <= 0) outStock++;
+      else if (s < 5) lowStock++;
+      else inStock++;
       if (p.featured) featured++;
     });
-    return { total: products?.length ?? 0, inStock, outStock, featured };
+    return { total: products?.length ?? 0, inStock, lowStock, outStock, featured };
   }, [products]);
 
   const isFiltered = Boolean(search.trim() || selectedCategory !== "all" || selectedStock !== "all" || selectedLevel !== "all");
@@ -113,9 +138,10 @@ function AdminProducts() {
       if (selectedLevel !== "all" && p.product_level !== selectedLevel) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       if (selectedStock !== "all") {
-        const isAvailable = (Number(p.stock) || 0) > 0 || totalSizeStock(parseSizes(p.weight_variants)) > 0;
-        if (selectedStock === "in" && !isAvailable) return false;
-        if (selectedStock === "out" && isAvailable) return false;
+        const s = getProductStock(p);
+        if (selectedStock === "in" && s < 5) return false;
+        if (selectedStock === "low" && (s <= 0 || s >= 5)) return false;
+        if (selectedStock === "out" && s > 0) return false;
       }
       if (q) {
         const matchName = p.name?.toLowerCase().includes(q);
@@ -320,22 +346,50 @@ function AdminProducts() {
       </div>
 
       {/* Quick Stats Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-card border border-border/80 rounded-2xl p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <button
+          type="button"
+          onClick={() => setSelectedStock("all")}
+          className={`text-left bg-card border rounded-2xl p-4 transition cursor-pointer hover:border-foreground/30 ${
+            selectedStock === "all" ? "border-foreground/40 ring-1 ring-foreground/20" : "border-border/80"
+          }`}
+        >
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Total Products</span>
           <p className="text-2xl font-bold font-display text-foreground mt-1">{stats.total}</p>
-        </div>
-        <div className="bg-card border border-border/80 rounded-2xl p-4">
-          <span className="text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-semibold">In Stock</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedStock(selectedStock === "in" ? "all" : "in")}
+          className={`text-left bg-card border rounded-2xl p-4 transition cursor-pointer hover:border-emerald-500/50 ${
+            selectedStock === "in" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5" : "border-border/80"
+          }`}
+        >
+          <span className="text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-semibold">In Stock (৫+)</span>
           <p className="text-2xl font-bold font-display text-emerald-600 dark:text-emerald-400 mt-1">{stats.inStock}</p>
-        </div>
-        <div className="bg-card border border-border/80 rounded-2xl p-4">
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedStock(selectedStock === "low" ? "all" : "low")}
+          className={`text-left bg-card border rounded-2xl p-4 transition cursor-pointer hover:border-amber-500/50 ${
+            selectedStock === "low" ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5" : "border-border/80"
+          }`}
+        >
+          <span className="text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">Low Stock (&lt; ৫টি)</span>
+          <p className="text-2xl font-bold font-display text-amber-600 dark:text-amber-400 mt-1">{stats.lowStock}</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedStock(selectedStock === "out" ? "all" : "out")}
+          className={`text-left bg-card border rounded-2xl p-4 transition cursor-pointer hover:border-rose-500/50 ${
+            selectedStock === "out" ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5" : "border-border/80"
+          }`}
+        >
           <span className="text-[11px] uppercase tracking-wider text-rose-600 dark:text-rose-400 font-semibold">Out of Stock</span>
           <p className="text-2xl font-bold font-display text-rose-600 dark:text-rose-400 mt-1">{stats.outStock}</p>
-        </div>
+        </button>
         <div className="bg-card border border-border/80 rounded-2xl p-4">
-          <span className="text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">Featured</span>
-          <p className="text-2xl font-bold font-display text-amber-600 dark:text-amber-400 mt-1">{stats.featured}</p>
+          <span className="text-[11px] uppercase tracking-wider text-purple-600 dark:text-purple-400 font-semibold">Featured</span>
+          <p className="text-2xl font-bold font-display text-purple-600 dark:text-purple-400 mt-1">{stats.featured}</p>
         </div>
       </div>
 
@@ -385,7 +439,8 @@ function AdminProducts() {
               className="w-full bg-background border border-border px-3 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-gold"
             >
               <option value="all">সব স্টক স্ট্যাটাস</option>
-              <option value="in">শুধু ইন-স্টক ({stats.inStock})</option>
+              <option value="in">ইন-স্টক (৫+) ({stats.inStock})</option>
+              <option value="low">লো স্টক (&lt; ৫টি) ({stats.lowStock})</option>
               <option value="out">আউট অব স্টক ({stats.outStock})</option>
             </select>
           </div>
@@ -668,18 +723,18 @@ function AdminProducts() {
                     কোনো ভ্যারিয়েন্ট নেই। সাধারণ প্রোডাক্ট হিসেবে উপরের Stock ({editing.stock} pcs) ও Price (৳{editing.price}) প্রযোজ্য হবে।
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[1.2fr_1.5fr_1fr_1fr_auto] gap-2 text-[10px] uppercase font-bold text-muted-foreground px-2">
-                      <span>Attribute</span>
-                      <span>Option Label</span>
-                      <span>Price (BDT)</span>
-                      <span>Stock (pcs)</span>
+                  <div className="space-y-2 overflow-x-auto">
+                    <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_88px_70px_28px] gap-2 text-[10px] uppercase font-bold text-muted-foreground px-2 items-center min-w-[480px]">
+                      <span className="truncate">Attribute</span>
+                      <span className="truncate">Option Label</span>
+                      <span className="truncate text-right pr-1">Price (৳)</span>
+                      <span className="truncate text-center">Stock (pcs)</span>
                       <span></span>
                     </div>
                     {editing.sizes.map((row, idx) => (
                       <div
                         key={idx}
-                        className="grid grid-cols-[1.2fr_1.5fr_1fr_1fr_auto] gap-2 items-center bg-background border border-border p-2 rounded-xl"
+                        className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_88px_70px_28px] gap-2 items-center bg-background border border-border p-2 rounded-xl min-w-[480px]"
                       >
                         <input
                           type="text"
@@ -692,7 +747,7 @@ function AdminProducts() {
                               sizes: editing.sizes.map((s, i) => (i === idx ? { ...s, attribute: val } : s)),
                             });
                           }}
-                          className="px-2.5 py-1.5 rounded-lg border border-input text-xs bg-card"
+                          className="w-full min-w-0 px-2.5 py-1.5 rounded-lg border border-input text-xs bg-card focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                         <input
                           type="text"
@@ -705,7 +760,7 @@ function AdminProducts() {
                               sizes: editing.sizes.map((s, i) => (i === idx ? { ...s, label: val } : s)),
                             });
                           }}
-                          className="px-2.5 py-1.5 rounded-lg border border-input text-xs font-semibold bg-card"
+                          className="w-full min-w-0 px-2.5 py-1.5 rounded-lg border border-input text-xs font-semibold bg-card focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                         <input
                           type="number"
@@ -719,7 +774,7 @@ function AdminProducts() {
                               sizes: editing.sizes.map((s, i) => (i === idx ? { ...s, price: val } : s)),
                             });
                           }}
-                          className="px-2.5 py-1.5 rounded-lg border border-input text-xs bg-card"
+                          className="w-full min-w-0 px-2 py-1.5 rounded-lg border border-input text-xs bg-card text-right font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                         <input
                           type="number"
@@ -733,7 +788,7 @@ function AdminProducts() {
                               sizes: editing.sizes.map((s, i) => (i === idx ? { ...s, stock: val } : s)),
                             });
                           }}
-                          className="px-2.5 py-1.5 rounded-lg border border-input text-xs bg-card"
+                          className="w-full min-w-0 px-2 py-1.5 rounded-lg border border-input text-xs bg-card text-center font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                         <button
                           type="button"
@@ -743,7 +798,8 @@ function AdminProducts() {
                               sizes: editing.sizes.filter((_, i) => i !== idx),
                             });
                           }}
-                          className="w-7 h-7 rounded-lg inline-flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                          className="w-7 h-7 rounded-lg inline-flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition shrink-0"
+                          title="Delete variant"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -934,7 +990,26 @@ function SortableRow({
       </td>
       <td className="p-3">{p.category || "—"}</td>
       <td className="p-3">{formatBDT(Number(p.price))}</td>
-      <td className="p-3">{p.stock}</td>
+      <td className="p-3">
+        {(() => {
+          const s = getProductStock(p);
+          if (s <= 0) {
+            return (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                0 · Out
+              </span>
+            );
+          }
+          if (s < 5) {
+            return (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                ⚠️ {s} · Low
+              </span>
+            );
+          }
+          return <span className="font-medium text-foreground">{s}</span>;
+        })()}
+      </td>
       <td className="p-3">
         {(() => {
           const sizes = parseSizes(p.weight_variants);

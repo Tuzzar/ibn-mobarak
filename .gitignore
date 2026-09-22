@@ -43,3 +43,7 @@ backup_data/
 *.sln
 *.sw?
 .github/
+
+# Scripts checkpoints
+scripts/.*checkpoint*
+scripts/*checkpoint*.json

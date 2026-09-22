@@ -80,10 +80,20 @@ function AdminDashboard() {
     queryKey: ["admin-overview"],
     queryFn: async () => {
       const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-      const [productsRes, ordersRes] = await Promise.all([
+      const [countRes, lowStockCountRes, lowStockRes, ordersRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, slug, stock, image_url, price"),
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .lte("stock", 5),
+        supabase
+          .from("products")
+          .select("id, name, slug, stock, image_url, price")
+          .lte("stock", 5)
+          .order("stock", { ascending: true })
+          .limit(10),
         supabase
           .from("orders")
           .select("id, total, status, created_at, customer_name, items")
@@ -91,14 +101,18 @@ function AdminDashboard() {
           .order("created_at", { ascending: false }),
       ]);
       return {
-        products: (productsRes.data ?? []) as ProductRow[],
+        productCount: countRes.count ?? 0,
+        lowStockCount: lowStockCountRes.count ?? 0,
+        lowStock: (lowStockRes.data ?? []) as ProductRow[],
         orders: (ordersRes.data ?? []) as OrderRow[],
       };
     },
   });
 
   const stats = useMemo(() => {
-    const products = data?.products ?? [];
+    const productCount = data?.productCount ?? 0;
+    const lowStockCount = data?.lowStockCount ?? 0;
+    const lowStock = data?.lowStock ?? [];
     const orders = data?.orders ?? [];
     const now = Date.now();
     const day = 24 * 60 * 60 * 1000;
@@ -122,7 +136,6 @@ function AdminDashboard() {
       : 0;
 
     const pending = orders.filter((o) => o.status === "pending").length;
-    const lowStock = products.filter((p) => p.stock <= 5);
 
     // revenue trend buckets
     const buckets: { date: string; revenue: number }[] = [];
@@ -150,19 +163,16 @@ function AdminDashboard() {
 
     // top products
     const productMap = new Map<string, { name: string; image_url: string | null; qty: number; revenue: number; slug: string }>();
-    const productsBySlug = new Map(products.map((p) => [p.slug, p]));
-    const productsByName = new Map(products.map((p) => [p.name, p]));
     for (const o of inRange) {
       for (const item of o.items ?? []) {
         const key = item.id || item.name || "";
         if (!key) continue;
-        const ref = productsBySlug.get(key) ?? productsByName.get(item.name ?? "");
         const existing = productMap.get(key) ?? {
           name: item.name ?? "Unknown",
-          image_url: ref?.image_url ?? item.image_url ?? null,
+          image_url: item.image_url ?? null,
           qty: 0,
           revenue: 0,
-          slug: ref?.slug ?? "",
+          slug: item.slug ?? "",
         };
         existing.qty += Number(item.quantity ?? 0);
         existing.revenue += Number(item.price ?? 0) * Number(item.quantity ?? 0);
@@ -177,7 +187,8 @@ function AdminDashboard() {
       orderCount,
       ordChange,
       pending,
-      productCount: products.length,
+      productCount,
+      lowStockCount,
       lowStock,
       buckets,
       statusData,
@@ -193,9 +204,10 @@ function AdminDashboard() {
         <div className="h-10 w-56 bg-muted/60 rounded animate-pulse" />
         <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-36 bg-card border border-border rounded-2xl animate-pulse" />
+            <div key={i} className="h-32 bg-card border border-border rounded-2xl animate-pulse" />
           ))}
         </div>
+        <div className="mt-8 h-80 bg-card border border-border rounded-2xl animate-pulse" />
       </div>
     );
   }
@@ -220,7 +232,7 @@ function AdminDashboard() {
       value: formatBDT(stats.revenue),
       change: stats.revChange,
       icon: TrendingUp,
-      tint: "primary",
+      tint: "emerald",
     },
     {
       label: "Orders",
@@ -241,8 +253,8 @@ function AdminDashboard() {
       value: stats.productCount,
       icon: Package,
       tint: "primary",
-      sub: stats.lowStock.length > 0 ? `${stats.lowStock.length} low stock` : "All in stock",
-      subAlert: stats.lowStock.length > 0,
+      sub: stats.lowStockCount > 0 ? `${stats.lowStockCount} low stock` : "All in stock",
+      subAlert: stats.lowStockCount > 0,
     },
   ] as const;
 

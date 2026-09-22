@@ -247,6 +247,22 @@ function AdminLanding() {
   );
 }
 
+function parseVideoUrls(urls: unknown, fallbackUrl?: unknown): string[] {
+  if (Array.isArray(urls)) {
+    return urls.filter((x): x is string => typeof x === "string" && Boolean(x.trim()));
+  }
+  if (typeof urls === "string" && urls.trim()) {
+    return urls.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  }
+  if (Array.isArray(fallbackUrl)) {
+    return fallbackUrl.filter((x): x is string => typeof x === "string" && Boolean(x.trim()));
+  }
+  if (typeof fallbackUrl === "string" && fallbackUrl.trim()) {
+    return fallbackUrl.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 function Editor({
   initial,
   onClose,
@@ -410,10 +426,7 @@ function Editor({
       return;
     }
     setSaving(true);
-    const cleanedVideoUrls = (v.video_urls ?? v.video_url ?? "")
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const cleanedVideoUrls = parseVideoUrls(v.video_urls, v.video_url);
     const joinedVideoUrls = cleanedVideoUrls.length ? cleanedVideoUrls.join("\n") : null;
     // Store ALL urls (newline-joined) in the legacy video_url column too,
     // so multiple videos survive even when the video_urls column doesn't
@@ -536,7 +549,7 @@ function Editor({
                 className={inputCls}
                 value={v.slug ?? ""}
                 onChange={(e) => upd("slug", slugify(e.target.value))}
-                placeholder="khirsapat-mango"
+                placeholder="calligraphy-master-kit"
               />
               <p className="text-xs text-muted-foreground mt-1">/landing/{v.slug || "your-slug"}</p>
             </div>
@@ -572,7 +585,7 @@ function Editor({
             className={inputCls}
             value={v.hero_headline ?? ""}
             onChange={(e) => upd("hero_headline", e.target.value)}
-            placeholder="Premium Khirsapat Mango — Direct from Farm"
+            placeholder="ইসলামিক ক্যালিগ্রাফি মাস্টার কিট — প্রিমিয়াম আর্ট সামগ্রী"
           />
           <div className="mt-4">
             <Label>Sub-headline</Label>
@@ -609,7 +622,7 @@ function Editor({
               className={inputCls}
               value={v.quantity_note ?? ""}
               onChange={(e) => upd("quantity_note", e.target.value)}
-              placeholder="আনুমানিক ২৫–৩৫টি আম প্রতি ১২ কেজিতে"
+              placeholder="ফুল সেট: ক্যালিগ্রাফি কলম, বাঁশের কলম, স্পেশাল কালি ও পেপার"
             />
             <p className="text-[11px] text-muted-foreground mt-1">Khali rakhle default text dekhabe.</p>
           </div>
@@ -723,13 +736,7 @@ function Editor({
                 একাধিক ভিডিও যোগ করতে "+ Add" চাপুন। প্রথম ভিডিওটি SEO/share image হিসেবেও ব্যবহার হবে।
               </p>
               <StringListEditor
-                items={
-                  v.video_urls != null
-                    ? v.video_urls.split(/\r?\n/)
-                    : v.video_url
-                      ? v.video_url.split(/\r?\n/)
-                      : []
-                }
+                items={parseVideoUrls(v.video_urls, v.video_url)}
                 onChange={(list: string[]) => {
                   upd("video_urls", list.length ? list.join("\n") : null);
                   const firstNonEmpty = list.map((s) => s.trim()).find(Boolean);
@@ -745,7 +752,7 @@ function Editor({
                 className={inputCls}
                 value={v.video_label ?? ""}
                 onChange={(e) => upd("video_label", e.target.value)}
-                placeholder="🎬 আমাদের প্রক্রিয়া"
+                placeholder="🎨 আমাদের সামগ্রী"
               />
             </div>
             <div>
@@ -754,7 +761,7 @@ function Editor({
                 className={inputCls}
                 value={v.video_heading ?? ""}
                 onChange={(e) => upd("video_heading", e.target.value)}
-                placeholder="বাগান থেকে আপনার ঘরে"
+                placeholder="আর্টিস্টদের প্রথম পছন্দ"
               />
             </div>
             <div className="sm:col-span-2">
@@ -764,7 +771,7 @@ function Editor({
                 rows={2}
                 value={v.video_description ?? ""}
                 onChange={(e) => upd("video_description", e.target.value)}
-                placeholder="দেখুন কীভাবে আমরা আপনার আম সংগ্রহ ও প্যাকিং করি।"
+                placeholder="দেখুন কীভাবে আমাদের প্রিমিয়াম আর্ট ও ক্যালিগ্রাফি সামগ্রী আপনার কাছে সুরক্ষিতভাবে পৌঁছায়।"
               />
             </div>
           </div>
@@ -890,7 +897,7 @@ function Editor({
             onChange={(items) => upd("trust_strip", items)}
             empty={{ text: "" }}
             render={(item, on) => (
-              <input className={inputCls} value={item.text} onChange={(e) => on({ ...item, text: e.target.value })} placeholder="e.g. কার্বাইডমুক্ত" />
+              <input className={inputCls} value={item.text} onChange={(e) => on({ ...item, text: e.target.value })} placeholder="e.g. ১০০% অথেনটিক" />
             )}
           />
         </SectionRow>
@@ -901,22 +908,22 @@ function Editor({
             <div><Label>Testimonials kicker</Label><input className={inputCls} value={v.testimonials_kicker ?? ""} onChange={(e) => upd("testimonials_kicker", e.target.value)} placeholder="❤️ গ্রাহকদের অভিজ্ঞতা" /></div>
             <div><Label>Testimonials title</Label><input className={inputCls} value={v.testimonials_title ?? ""} onChange={(e) => upd("testimonials_title", e.target.value)} placeholder="হাজারো পরিবারের ভালোবাসা" /></div>
             <div><Label>Features kicker</Label><input className={inputCls} value={v.features_kicker ?? ""} onChange={(e) => upd("features_kicker", e.target.value)} placeholder="⭐ কেন Ibn Mobarak Art Gallery?" /></div>
-            <div><Label>Features title</Label><input className={inputCls} value={v.features_title ?? ""} onChange={(e) => upd("features_title", e.target.value)} placeholder="শুধু আম বিক্রি করি না…" /></div>
+            <div><Label>Features title</Label><input className={inputCls} value={v.features_title ?? ""} onChange={(e) => upd("features_title", e.target.value)} placeholder="সেরা মানের ক্যালিগ্রাফি ও আর্ট সামগ্রী…" /></div>
             <div><Label>FAQ kicker</Label><input className={inputCls} value={v.faq_kicker ?? ""} onChange={(e) => upd("faq_kicker", e.target.value)} placeholder="❓ FAQ" /></div>
             <div><Label>FAQ title</Label><input className={inputCls} value={v.faq_title ?? ""} onChange={(e) => upd("faq_title", e.target.value)} placeholder="প্রায় জিজ্ঞাসিত প্রশ্ন" /></div>
           </div>
         </SectionRow>
 
-        <SectionRow id="amrapali" title="Why Amrapali (Product specialty)">
+        <SectionRow id="amrapali" title="Product Specialty (পণ্যের বিশেষত্ব)">
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div><Label>Kicker</Label><input className={inputCls} value={v.amrapali_kicker ?? ""} onChange={(e) => upd("amrapali_kicker", e.target.value)} placeholder="🥭 আম্রপালি বিশেষত্ব" /></div>
-            <div><Label>Title</Label><input className={inputCls} value={v.amrapali_title ?? ""} onChange={(e) => upd("amrapali_title", e.target.value)} placeholder="কেন আম্রপালি এত জনপ্রিয়?" /></div>
+            <div><Label>Kicker</Label><input className={inputCls} value={v.amrapali_kicker ?? ""} onChange={(e) => upd("amrapali_kicker", e.target.value)} placeholder="🎨 পণ্যের বিশেষত্ব" /></div>
+            <div><Label>Title</Label><input className={inputCls} value={v.amrapali_title ?? ""} onChange={(e) => upd("amrapali_title", e.target.value)} placeholder="কেন আমাদের ক্যালিগ্রাফি কিট সেরা?" /></div>
           </div>
           <Label>Points (one per row)</Label>
           <StringListEditor
             items={v.amrapali_points ?? []}
             onChange={(items) => upd("amrapali_points", items)}
-            placeholder="e.g. গাঢ় কমলা শাঁস"
+            placeholder="e.g. প্রিমিয়াম হ্যান্ডমেড নিব ও খাঁটি কালি"
             inputCls={inputCls}
           />
         </SectionRow>
@@ -930,15 +937,15 @@ function Editor({
           <StringListEditor
             items={v.promise_items ?? []}
             onChange={(items) => upd("promise_items", items)}
-            placeholder="e.g. কার্বাইডমুক্ত"
+            placeholder="e.g. ১০০% অথেনটিক ব্র্যান্ড"
             inputCls={inputCls}
           />
         </SectionRow>
 
         <SectionRow id="journey" title="Journey (Steps with number + title + desc)">
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div><Label>Kicker</Label><input className={inputCls} value={v.journey_kicker ?? ""} onChange={(e) => upd("journey_kicker", e.target.value)} placeholder="👨‍🌾 বাগান থেকে আপনার ঘর" /></div>
-            <div><Label>Title</Label><input className={inputCls} value={v.journey_title ?? ""} onChange={(e) => upd("journey_title", e.target.value)} placeholder="৫টি ধাপে আপনার ঘরে আম" /></div>
+            <div><Label>Kicker</Label><input className={inputCls} value={v.journey_kicker ?? ""} onChange={(e) => upd("journey_kicker", e.target.value)} placeholder="📦 অর্ডার থেকে ডেলিভারি" /></div>
+            <div><Label>Title</Label><input className={inputCls} value={v.journey_title ?? ""} onChange={(e) => upd("journey_title", e.target.value)} placeholder="৪টি সহজ ধাপে আপনার ঘরে" /></div>
           </div>
           <ListEditor<LandingJourneyStep>
             items={v.journey_steps ?? []}
@@ -968,7 +975,7 @@ function Editor({
             render={(item, on) => (
               <div className="grid grid-cols-2 gap-2">
                 <input className={inputCls} value={item.n} onChange={(e) => on({ ...item, n: e.target.value })} placeholder="১০,০০০+" />
-                <input className={inputCls} value={item.l} onChange={(e) => on({ ...item, l: e.target.value })} placeholder="কেজি ডেলিভারি" />
+                <input className={inputCls} value={item.l} onChange={(e) => on({ ...item, l: e.target.value })} placeholder="সন্তুষ্ট গ্রাহক" />
               </div>
             )}
           />
@@ -981,7 +988,7 @@ function Editor({
           </div>
           <div className="mt-4">
             <Label>Description</Label>
-            <textarea className={textCls} rows={2} value={v.final_cta_description ?? ""} onChange={(e) => upd("final_cta_description", e.target.value)} placeholder="সতেজ আম নিশ্চিত করতে…" />
+            <textarea className={textCls} rows={2} value={v.final_cta_description ?? ""} onChange={(e) => upd("final_cta_description", e.target.value)} placeholder="আপনার সৃজনশীল শিল্পচর্চায় সেরা উপাদান নিশ্চিত করতে আজই অর্ডার করুন…" />
           </div>
         </SectionRow>
 

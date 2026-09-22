@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, ShoppingCart, LogOut, Menu, X, User, Shield, Image as ImageIcon, LayoutTemplate, ListTree } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, LogOut, Menu, X, User, Shield, Image as ImageIcon, LayoutTemplate, ListTree, Images } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -55,7 +55,7 @@ function AdminLayout() {
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, adminOnly: false },
     { to: "/admin/products", label: "Products", icon: Package, exact: false, adminOnly: false },
     { to: "/admin/orders", label: "Orders", icon: ShoppingCart, exact: false, adminOnly: false },
-    
+    { to: "/admin/media", label: "Media Library", icon: Images, exact: false, adminOnly: false },
     { to: "/admin/site-content", label: "Site Content", icon: ImageIcon, exact: false, adminOnly: false },
     { to: "/admin/menu-categories", label: "Menu Categories", icon: ListTree, exact: false, adminOnly: false },
     { to: "/admin/landing", label: "Landing Pages", icon: LayoutTemplate, exact: false, adminOnly: false },

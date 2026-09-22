@@ -28,6 +28,7 @@ import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-p
 import { Route as AdminIncompleteOrdersRouteImport } from './routes/admin.incomplete-orders'
 import { Route as AdminLandingRouteImport } from './routes/admin.landing'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminMenuCategoriesRouteImport } from './routes/admin.menu-categories'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
@@ -136,6 +137,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMediaRoute = AdminMediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMenuCategoriesRoute = AdminMenuCategoriesRouteImport.update({
   id: '/menu-categories',
   path: '/menu-categories',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/admin/incomplete-orders': typeof AdminIncompleteOrdersRoute
   '/admin/landing': typeof AdminLandingRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
   '/admin/menu-categories': typeof AdminMenuCategoriesRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/admin/incomplete-orders': typeof AdminIncompleteOrdersRoute
   '/admin/landing': typeof AdminLandingRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
   '/admin/menu-categories': typeof AdminMenuCategoriesRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/admin/incomplete-orders': typeof AdminIncompleteOrdersRoute
   '/admin/landing': typeof AdminLandingRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
   '/admin/menu-categories': typeof AdminMenuCategoriesRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/admin/incomplete-orders'
     | '/admin/landing'
     | '/admin/login'
+    | '/admin/media'
     | '/admin/menu-categories'
     | '/admin/products'
     | '/admin/profile'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/admin/incomplete-orders'
     | '/admin/landing'
     | '/admin/login'
+    | '/admin/media'
     | '/admin/menu-categories'
     | '/admin/products'
     | '/admin/profile'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin/incomplete-orders'
     | '/admin/landing'
     | '/admin/login'
+    | '/admin/media'
     | '/admin/menu-categories'
     | '/admin/products'
     | '/admin/profile'
@@ -550,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/media': {
+      id: '/admin/media'
+      path: '/media'
+      fullPath: '/admin/media'
+      preLoaderRoute: typeof AdminMediaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/menu-categories': {
       id: '/admin/menu-categories'
       path: '/menu-categories'
@@ -643,6 +662,7 @@ interface AdminRouteChildren {
   AdminIncompleteOrdersRoute: typeof AdminIncompleteOrdersRoute
   AdminLandingRoute: typeof AdminLandingRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminMediaRoute: typeof AdminMediaRoute
   AdminMenuCategoriesRoute: typeof AdminMenuCategoriesRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminProfileRoute: typeof AdminProfileRoute
@@ -659,6 +679,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIncompleteOrdersRoute: AdminIncompleteOrdersRoute,
   AdminLandingRoute: AdminLandingRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminMediaRoute: AdminMediaRoute,
   AdminMenuCategoriesRoute: AdminMenuCategoriesRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminProfileRoute: AdminProfileRoute,

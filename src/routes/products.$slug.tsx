@@ -471,24 +471,24 @@ function ProductDetail() {
               <button
                 onClick={handleAdd}
                 disabled={blocked || adding || buying}
-                className={`flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all shadow-xs active:scale-[0.99] disabled:opacity-80 ${
+                className={`flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm whitespace-nowrap transition-all shadow-xs active:scale-[0.99] disabled:opacity-80 ${
                   oos
                     ? "border border-destructive/40 bg-destructive/10 text-destructive cursor-not-allowed"
                     : "border-2 border-primary bg-card text-primary hover:bg-primary hover:text-primary-foreground hover:shadow-md"
                 }`}
               >
                 {adding ? <Spinner className="w-4 h-4" /> : <ShoppingBag className="w-4 h-4" />}
-                {oos ? "স্টক আউট" : needsSize ? "সাইজ সিলেক্ট করুন" : adding ? "যোগ হচ্ছে…" : "কার্টে যোগ করুন"}
+                <span>{oos ? "স্টক আউট" : needsSize ? "সাইজ সিলেক্ট করুন" : adding ? "যোগ হচ্ছে…" : "কার্টে যোগ করুন"}</span>
               </button>
 
               {/* Buy Now (Primary CTA) */}
               <button
                 onClick={handleBuyNow}
                 disabled={blocked || buying || adding}
-                className="flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground px-6 py-3 rounded-xl font-bold text-sm tracking-wide transition-all shadow-md hover:shadow-lg active:scale-[0.99] disabled:opacity-50"
+                className="flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground px-4 sm:px-5 py-3 rounded-xl font-bold text-sm tracking-wide whitespace-nowrap transition-all shadow-md hover:shadow-lg active:scale-[0.99] disabled:opacity-50"
               >
                 {buying ? <Spinner className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                {oos ? "স্টক আউট" : needsSize ? "সাইজ সিলেক্ট করুন" : buying ? "অর্ডার হচ্ছে…" : "সরাসরি অর্ডার করুন"}
+                <span>{oos ? "স্টক আউট" : needsSize ? "সাইজ সিলেক্ট করুন" : buying ? "অর্ডার হচ্ছে…" : "অর্ডার করুন"}</span>
               </button>
 
               {/* Wishlist Toggle Button */}
@@ -722,18 +722,18 @@ function ProductDetail() {
           <button
             onClick={handleAdd}
             disabled={blocked || adding || buying}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-primary text-primary rounded-full py-2.5 text-xs sm:text-sm font-medium disabled:opacity-50"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-primary text-primary rounded-full py-2.5 px-3 text-xs sm:text-sm font-medium whitespace-nowrap disabled:opacity-50"
           >
             {adding ? <Spinner className="w-4 h-4" /> : <ShoppingBag className="w-4 h-4" />}
-            {adding ? "যোগ হচ্ছে…" : "কার্টে যোগ করুন"}
+            <span>{adding ? "যোগ হচ্ছে…" : "কার্টে যোগ করুন"}</span>
           </button>
           <button
             onClick={handleBuyNow}
             disabled={blocked || buying || adding}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground rounded-full py-2.5 text-xs sm:text-sm font-bold disabled:opacity-50 shadow-sm"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-gold hover:text-gold-foreground rounded-full py-2.5 px-3 text-xs sm:text-sm font-bold whitespace-nowrap disabled:opacity-50 shadow-sm"
           >
             {buying ? <Spinner className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-            {oos ? "স্টক আউট" : needsSize ? "অপশন বাছাই করুন" : buying ? "অর্ডার হচ্ছে…" : "সরাসরি অর্ডার"}
+            <span>{oos ? "স্টক আউট" : needsSize ? "অপশন বাছাই করুন" : buying ? "অর্ডার হচ্ছে…" : "অর্ডার করুন"}</span>
           </button>
         </div>
       </div>
