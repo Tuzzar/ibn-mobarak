@@ -171,7 +171,7 @@ export async function listR2Files(prefix = "", limit = 100, continuationToken?: 
 /**
  * Recursively list up to maxFiles from R2 for Media Library indexing.
  */
-export async function listAllR2Files(prefix = "", maxFiles = 5000) {
+export async function listAllR2Files(prefix = "", maxFiles = 50000) {
   let all: Array<{ key: string; size: number; lastModified: string; url: string }> = [];
   let token: string | undefined = undefined;
 

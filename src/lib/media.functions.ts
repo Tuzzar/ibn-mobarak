@@ -42,7 +42,7 @@ function getMimeType(filename: string): string {
 async function scanR2Files(): Promise<MediaFile[]> {
   const { listAllR2Files } = await import("./r2.server");
   try {
-    const items = await listAllR2Files("", 5000);
+    const items = await listAllR2Files("", 50000);
     return items.map((item) => {
       const isTrash = item.key.startsWith("_trash/");
       let originalPath: string | undefined;

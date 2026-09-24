@@ -23,6 +23,8 @@ import {
   AlertTriangle,
   Download,
   Package,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   getMediaSummary,
@@ -73,6 +75,9 @@ function AdminMediaPage() {
   const [search, setSearch] = useState("");
   const [selectedBucket, setSelectedBucket] = useState("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(60);
+  const [catalogPage, setCatalogPage] = useState(1);
 
   // Modals state
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
@@ -400,6 +405,33 @@ function AdminMediaPage() {
     );
   }, [catalogPhotos, search]);
 
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tab, search, selectedBucket, sortOption]);
+
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [search]);
+
+  // Paginated storage files
+  const totalPages = Math.max(1, Math.ceil(filteredStorageFiles.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedStorageFiles = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredStorageFiles.slice(start, start + pageSize);
+  }, [filteredStorageFiles, safeCurrentPage, pageSize]);
+
+  // Paginated catalog photos
+  const totalCatalogPages = Math.max(1, Math.ceil(filteredCatalogPhotos.length / pageSize));
+  const safeCatalogPage = Math.min(Math.max(1, catalogPage), totalCatalogPages);
+
+  const paginatedCatalogPhotos = useMemo(() => {
+    const start = (safeCatalogPage - 1) * pageSize;
+    return filteredCatalogPhotos.slice(start, start + pageSize);
+  }, [filteredCatalogPhotos, safeCatalogPage, pageSize]);
+
   // Clear selection whenever tab, search, or bucket filter changes
   useEffect(() => {
     setSelectedIds(new Set());
@@ -412,6 +444,25 @@ function AdminMediaPage() {
       else next.add(fileId);
       return next;
     });
+  };
+
+  const isCurrentPageAllSelected =
+    paginatedStorageFiles.length > 0 && paginatedStorageFiles.every((f) => selectedIds.has(f.id));
+
+  const toggleSelectCurrentPage = () => {
+    if (isCurrentPageAllSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        paginatedStorageFiles.forEach((f) => next.delete(f.id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        paginatedStorageFiles.forEach((f) => next.add(f.id));
+        return next;
+      });
+    }
   };
 
   const selectAllVisible = () => {
@@ -709,10 +760,14 @@ function AdminMediaPage() {
           <div className="flex flex-wrap items-center gap-3">
             <span>
               {tab === "catalog" ? (
-                <>মোট <strong>{filteredCatalogPhotos.length}টি</strong> ক্যাটালগ প্রোডাক্ট ছবি</>
+                <>
+                  মোট <strong>{filteredCatalogPhotos.length.toLocaleString()}টি</strong> ক্যাটালগ প্রোডাক্ট ছবি
+                  {totalCatalogPages > 1 && <> (পেজ {safeCatalogPage} / {totalCatalogPages})</>}
+                </>
               ) : (
                 <>
-                  মোট <strong>{filteredStorageFiles.length}টি</strong> ফাইল
+                  মোট <strong>{filteredStorageFiles.length.toLocaleString()}টি</strong> ফাইল
+                  {totalPages > 1 && <> (পেজ {safeCurrentPage} / {totalPages})</>}
                   {tab === "active" && <> ({formatBytes(filteredStorageFiles.reduce((s, f) => s + f.size, 0))})</>}
                   {tab === "trash" && <> ({formatBytes(filteredStorageFiles.reduce((s, f) => s + f.size, 0))} ট্র্যাশে)</>}
                 </>
@@ -720,26 +775,36 @@ function AdminMediaPage() {
             </span>
 
             {tab !== "catalog" && filteredStorageFiles.length > 0 && (
-              <div className="flex items-center gap-2 pl-3 border-l border-border/60">
+              <div className="flex flex-wrap items-center gap-2 pl-3 border-l border-border/60">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-foreground hover:text-primary font-medium">
                   <input
                     type="checkbox"
-                    checked={filteredStorageFiles.length > 0 && selectedIds.size === filteredStorageFiles.length}
-                    onChange={(e) => {
-                      if (e.target.checked) selectAllVisible();
-                      else clearSelection();
-                    }}
+                    checked={isCurrentPageAllSelected}
+                    onChange={toggleSelectCurrentPage}
                     className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
                   />
-                  <span>সব নির্বাচন করুন {selectedIds.size > 0 && `(${selectedIds.size}/${filteredStorageFiles.length})`}</span>
+                  <span>
+                    বর্তমান পেজ{" "}
+                    {paginatedStorageFiles.length > 0 &&
+                      `(${paginatedStorageFiles.filter((f) => selectedIds.has(f.id)).length}/${paginatedStorageFiles.length})`}
+                  </span>
                 </label>
+                {selectedIds.size < filteredStorageFiles.length && (
+                  <button
+                    type="button"
+                    onClick={selectAllVisible}
+                    className="text-[11px] text-primary hover:underline cursor-pointer"
+                  >
+                    সকল {filteredStorageFiles.length.toLocaleString()}টি নির্বাচন করুন
+                  </button>
+                )}
                 {selectedIds.size > 0 && (
                   <button
                     type="button"
                     onClick={clearSelection}
                     className="text-[11px] text-muted-foreground hover:text-rose-500 transition cursor-pointer underline"
                   >
-                    সিলেকশন বাতিল
+                    সিলেকশন বাতিল ({selectedIds.size.toLocaleString()}টি নির্বাচিত)
                   </button>
                 )}
               </div>
@@ -775,121 +840,175 @@ function AdminMediaPage() {
           <div className="p-12 text-center bg-card border border-border rounded-2xl text-muted-foreground">
             কোনো প্রোডাক্ট ছবি পাওয়া যায়নি
           </div>
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {filteredCatalogPhotos.map((item) => (
-              <div
-                key={item.id}
-                className="group relative bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-primary/50 transition-all flex flex-col"
-              >
-                <div className="aspect-square bg-muted relative overflow-hidden flex items-center justify-center">
-                  <img
-                    src={item.url}
-                    alt={item.productName}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(item.url, item.id)}
-                      className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition cursor-pointer shadow-md"
-                      title="ছবির লিঙ্ক কপি করুন"
-                    >
-                      {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadMediaFile(item.url, `${item.productSlug || "photo"}.jpg`, item.id)}
-                      className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition cursor-pointer shadow-md"
-                      title="ডাউনলোড করুন"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition shadow-md"
-                      title="নতুন ট্যাবে দেখুন"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+        ) : (
+          <div className="space-y-4">
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {paginatedCatalogPhotos.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-primary/50 transition-all flex flex-col"
+                  >
+                    <div className="aspect-square bg-muted relative overflow-hidden flex items-center justify-center">
+                      <img
+                        src={item.url}
+                        alt={item.productName}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(item.url, item.id)}
+                          className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition cursor-pointer shadow-md"
+                          title="ছবির লিঙ্ক কপি করুন"
+                        >
+                          {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadMediaFile(item.url, `${item.productSlug || "photo"}.jpg`, item.id)}
+                          className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition cursor-pointer shadow-md"
+                          title="ডাউনলোড করুন"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition shadow-md"
+                          title="নতুন ট্যাবে দেখুন"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                    <div className="p-2.5 flex-1 flex flex-col justify-between">
+                      <p className="font-medium text-xs text-foreground line-clamp-2" title={item.productName}>
+                        {item.productName}
+                      </p>
+                      <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="truncate max-w-[90px]">{item.category || "—"}</span>
+                        <a
+                          href={`/products/${item.productSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline font-medium"
+                        >
+                          View
+                        </a>
+                      </div>
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-2xl overflow-x-auto shadow-xs">
+                <table className="w-full text-xs text-left min-w-[650px]">
+                  <thead className="bg-muted/40 border-b border-border font-semibold text-muted-foreground">
+                    <tr>
+                      <th className="p-3 w-16">ছবি</th>
+                      <th className="p-3">প্রোডাক্টের নাম</th>
+                      <th className="p-3">ক্যাটাগরি</th>
+                      <th className="p-3">URL</th>
+                      <th className="p-3 text-right">একশন</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {paginatedCatalogPhotos.map((item) => (
+                      <tr key={item.id} className="hover:bg-muted/30 transition">
+                        <td className="p-3">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted">
+                            <img src={item.url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        </td>
+                        <td className="p-3 font-medium text-foreground max-w-xs truncate">{item.productName}</td>
+                        <td className="p-3 text-muted-foreground">{item.category || "—"}</td>
+                        <td className="p-3 text-muted-foreground max-w-xs truncate font-mono text-[11px]">
+                          {item.url}
+                        </td>
+                        <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(item.url, item.id)}
+                            className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px]"
+                          >
+                            {copiedId === item.id ? "কপি হয়েছে!" : "URL কপি"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadMediaFile(item.url, `${item.productSlug || "photo"}.jpg`, item.id)}
+                            className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                            title="ডাউনলোড করুন"
+                          >
+                            <Download className="w-3 h-3" /> ডাউনলোড
+                          </button>
+                          <a
+                            href={`/products/${item.productSlug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition text-[11px] font-medium inline-flex items-center gap-1"
+                          >
+                            প্রোডাক্ট দেখুন <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Catalog Pagination Controls */}
+            {totalCatalogPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+                <div className="text-xs text-muted-foreground">
+                  দেখানো হচ্ছে <strong>{((safeCatalogPage - 1) * pageSize) + 1}</strong> থেকে{" "}
+                  <strong>{Math.min(safeCatalogPage * pageSize, filteredCatalogPhotos.length)}</strong> (মোট{" "}
+                  <strong>{filteredCatalogPhotos.length.toLocaleString()}টি</strong> ছবি)
                 </div>
-                <div className="p-2.5 flex-1 flex flex-col justify-between">
-                  <p className="font-medium text-xs text-foreground line-clamp-2" title={item.productName}>
-                    {item.productName}
-                  </p>
-                  <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="truncate max-w-[90px]">{item.category || "—"}</span>
-                    <a
-                      href={`/products/${item.productSlug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-medium"
-                    >
-                      View
-                    </a>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCatalogPage(1)}
+                    disabled={safeCatalogPage <= 1}
+                    className="px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    প্রথম
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
+                    disabled={safeCatalogPage <= 1}
+                    className="p-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    title="পূর্ববর্তী পেজ"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-3 py-1 text-xs font-semibold text-foreground bg-muted/60 rounded-lg">
+                    পেজ {safeCatalogPage} / {totalCatalogPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogPage((p) => Math.min(totalCatalogPages, p + 1))}
+                    disabled={safeCatalogPage >= totalCatalogPages}
+                    className="p-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    title="পরবর্তী পেজ"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogPage(totalCatalogPages)}
+                    disabled={safeCatalogPage >= totalCatalogPages}
+                    className="px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    শেষ
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-card border border-border rounded-2xl overflow-x-auto shadow-xs">
-            <table className="w-full text-xs text-left min-w-[650px]">
-              <thead className="bg-muted/40 border-b border-border font-semibold text-muted-foreground">
-                <tr>
-                  <th className="p-3 w-16">ছবি</th>
-                  <th className="p-3">প্রোডাক্টের নাম</th>
-                  <th className="p-3">ক্যাটাগরি</th>
-                  <th className="p-3">URL</th>
-                  <th className="p-3 text-right">একশন</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredCatalogPhotos.map((item) => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition">
-                    <td className="p-3">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted">
-                        <img src={item.url} alt="" className="w-full h-full object-cover" />
-                      </div>
-                    </td>
-                    <td className="p-3 font-medium text-foreground max-w-xs truncate">{item.productName}</td>
-                    <td className="p-3 text-muted-foreground">{item.category || "—"}</td>
-                    <td className="p-3 text-muted-foreground max-w-xs truncate font-mono text-[11px]">
-                      {item.url}
-                    </td>
-                    <td className="p-3 text-right space-x-1 whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(item.url, item.id)}
-                        className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px]"
-                      >
-                        {copiedId === item.id ? "কপি হয়েছে!" : "URL কপি"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => downloadMediaFile(item.url, `${item.productSlug || "photo"}.jpg`, item.id)}
-                        className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px] inline-flex items-center gap-1 cursor-pointer"
-                        title="ডাউনলোড করুন"
-                      >
-                        <Download className="w-3 h-3" /> ডাউনলোড
-                      </button>
-                      <a
-                        href={`/products/${item.productSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition text-[11px] font-medium inline-flex items-center gap-1"
-                      >
-                        প্রোডাক্ট দেখুন <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            )}
           </div>
         )
       ) : filteredStorageFiles.length === 0 ? (
@@ -903,10 +1022,12 @@ function AdminMediaPage() {
               : "নতুন ছবি আপলোড করতে উপরের 'ছবি আপলোড করুন' বাটনে ক্লিক করুন।"}
           </p>
         </div>
-      ) : viewMode === "grid" ? (
-        /* Storage Files Grid View */
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {filteredStorageFiles.map((file) => {
+      ) : (
+        <div className="space-y-4">
+          {viewMode === "grid" ? (
+            /* Storage Files Grid View */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {paginatedStorageFiles.map((file) => {
             const isSelected = selectedIds.has(file.id);
             return (
               <div
@@ -1087,13 +1208,10 @@ function AdminMediaPage() {
                 <th className="p-3 w-10">
                   <input
                     type="checkbox"
-                    checked={filteredStorageFiles.length > 0 && selectedIds.size === filteredStorageFiles.length}
-                    onChange={(e) => {
-                      if (e.target.checked) selectAllVisible();
-                      else clearSelection();
-                    }}
+                    checked={isCurrentPageAllSelected}
+                    onChange={toggleSelectCurrentPage}
                     className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                    title="সবগুলো সিলেক্ট করুন"
+                    title={isCurrentPageAllSelected ? "এই পেজের সব আনসিলেক্ট করুন" : "এই পেজের সবগুলো সিলেক্ট করুন"}
                   />
                 </th>
                 <th className="p-3 w-14">প্রিভিউ</th>
@@ -1105,7 +1223,7 @@ function AdminMediaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredStorageFiles.map((file) => {
+              {paginatedStorageFiles.map((file) => {
                 const isSelected = selectedIds.has(file.id);
                 return (
                   <tr
@@ -1219,6 +1337,78 @@ function AdminMediaPage() {
           </table>
         </div>
       )}
+
+      {/* Storage Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+          <div className="text-xs text-muted-foreground">
+            দেখানো হচ্ছে <strong>{((safeCurrentPage - 1) * pageSize) + 1}</strong> থেকে{" "}
+            <strong>{Math.min(safeCurrentPage * pageSize, filteredStorageFiles.length)}</strong> (মোট{" "}
+            <strong>{filteredStorageFiles.length.toLocaleString()}টি</strong> ফাইল)
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(1)}
+              disabled={safeCurrentPage <= 1}
+              className="px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              প্রথম
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safeCurrentPage <= 1}
+              className="p-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+              title="পূর্ববর্তী পেজ"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <span className="px-3 py-1 text-xs font-semibold text-foreground bg-muted/60 rounded-lg">
+              পেজ {safeCurrentPage} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+              className="p-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+              title="পরবর্তী পেজ"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safeCurrentPage >= totalPages}
+              className="px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              শেষ
+            </button>
+
+            <div className="ml-2 pl-2 border-l border-border flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>প্রতি পেজে:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-background border border-border rounded-lg px-2 py-1 text-xs outline-none focus:border-primary"
+              >
+                <option value={30}>30</option>
+                <option value={60}>60</option>
+                <option value={120}>120</option>
+                <option value={240}>240</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )}
 
       {/* RENAME MODAL */}
       {renameTarget && (
