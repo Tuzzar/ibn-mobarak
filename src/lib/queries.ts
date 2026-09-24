@@ -182,6 +182,7 @@ export const productsCategoriesOptions = () =>
   });
 
 import { parseSearchTokens, scoreProductRelevance } from "./search";
+import { searchFuzzyCatalog } from "./fuzzy-search";
 import { getSubcategoryBySlug } from "@/data/artCategories";
 
 export interface ProductsFilterParams {
@@ -360,6 +361,17 @@ export const productsInfiniteOptions = (
           }
           return data;
         }
+
+        // If no direct DB results found, fall back to Fuse.js fuzzy search
+        if ((!data || data.length === 0) && from === 0 && cleanSearch) {
+          const fuzzy = await searchFuzzyCatalog(cleanSearch, {
+            limit: PAGE_SIZE,
+            category: category && category !== "all" ? category : undefined,
+          });
+          if (fuzzy.length > 0) {
+            return fuzzy;
+          }
+        }
       } catch (err) {
         console.warn("Could not fetch infinite products from Supabase:", err);
       }
@@ -431,6 +443,15 @@ export const productsSearchCountOptions = (params: ProductsFilterParams) =>
       }
 
       const { count } = await q;
+      if ((!count || count === 0) && cleanSearch) {
+        const fuzzy = await searchFuzzyCatalog(cleanSearch, {
+          limit: 50,
+          category: category && category !== "all" ? category : undefined,
+        });
+        if (fuzzy.length > 0) {
+          return fuzzy.length;
+        }
+      }
       return count ?? 0;
     },
   });

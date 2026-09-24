@@ -37,6 +37,7 @@ import {
 } from "@/lib/queries";
 import { MASTER_ART_CATEGORIES, getSubcategoryBySlug } from "@/data/artCategories";
 import { formatBDT } from "@/lib/cart";
+import { parseSearchTokens } from "@/lib/search";
 
 const sortOptions = ["featured", "newest", "name-asc", "price-asc", "price-desc"] as const;
 type SortKey = (typeof sortOptions)[number];
@@ -156,6 +157,7 @@ function Products() {
   const inStock = search.inStock ?? false;
   const sort = (search.sort ?? "featured") as SortKey;
   const navigate = useNavigate({ from: "/products/" });
+  const searchTokens = useMemo(() => (q ? parseSearchTokens(q) : null), [q]);
 
   const { data: categories = [] } = useQuery(productsCategoriesOptions());
   const { data: content } = useQuery(siteContentOptions());
@@ -726,6 +728,11 @@ function Products() {
               {q.trim() && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
                   <span>অনুসন্ধান: "{q}"</span>
+                  {searchTokens?.didYouMean && (
+                    <span className="text-[11px] opacity-80 ml-0.5">
+                      (সঠিক শব্দ: <strong>{searchTokens.didYouMean}</strong>)
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -734,7 +741,7 @@ function Products() {
                         search: (prev: ProductsSearch) => ({ ...prev, q: undefined }),
                       });
                     }}
-                    className="hover:opacity-75 cursor-pointer"
+                    className="hover:opacity-75 cursor-pointer ml-0.5"
                     aria-label="Remove search filter"
                   >
                     <X className="w-3 h-3" />
@@ -828,6 +835,35 @@ function Products() {
                 className="inline-flex items-center gap-1 text-gold hover:text-primary transition-colors ml-auto text-xs font-semibold"
               >
                 <RotateCcw className="w-3 h-3" /> সব ফিল্টার মুছুন
+              </button>
+            </div>
+          )}
+
+          {/* Smart Search Auto-correction / Did You Mean Notice */}
+          {q.trim() && searchTokens?.didYouMean && (
+            <div className="mt-2.5 p-3 rounded-xl bg-gold/10 border border-gold/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-foreground animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <span className="text-base shrink-0">💡</span>
+                <span>
+                  আপনি কি <strong>"{searchTokens.didYouMean}"</strong> খুঁজছিলেন? আমরা স্বয়ংক্রিয়ভাবে সম্পর্কিত সঠিক পণ্যগুলো নিচে প্রদর্শন করছি।
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (searchTokens.didYouMean) {
+                    setQueryInput(searchTokens.didYouMean);
+                    navigate({
+                      search: (prev: ProductsSearch) => ({
+                        ...prev,
+                        q: searchTokens.didYouMean || undefined,
+                      }),
+                    });
+                  }
+                }}
+                className="text-xs font-semibold text-primary hover:underline whitespace-nowrap cursor-pointer self-end sm:self-auto"
+              >
+                শুধুমাত্র "{searchTokens.didYouMean}" ফিল্টার করুন
               </button>
             </div>
           )}

@@ -164,6 +164,25 @@ export function HeaderSearch({
             <span className="text-gold font-medium">Ibn Mobarak Art Gallery</span>
           </div>
 
+          {suggestions[0]?._didYouMean && (
+            <div className="px-3.5 py-1.5 bg-gold/10 border-b border-gold/20 flex items-center justify-between text-xs text-foreground">
+              <span>
+                আপনি কি খুঁজছেন: <strong className="text-primary font-semibold capitalize">"{suggestions[0]._didYouMean}"</strong>?
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (suggestions[0]._didYouMean) {
+                    setQuery(suggestions[0]._didYouMean);
+                  }
+                }}
+                className="text-[11px] text-primary hover:underline font-medium cursor-pointer"
+              >
+                সংশোধন করুন
+              </button>
+            </div>
+          )}
+
           <div className="divide-y divide-border/40 overflow-y-auto max-h-[380px]">
             {suggestions.map((p) => {
               const discount = Math.max(0, Math.floor(Number(p.discount_amount) || 0));
