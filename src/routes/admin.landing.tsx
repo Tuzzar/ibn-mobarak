@@ -274,6 +274,7 @@ function Editor({
   onSaved: () => void;
 }) {
   const [v, setV] = useState<Partial<LandingPage>>(initial);
+  const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingReview, setUploadingReview] = useState(false);
@@ -281,8 +282,29 @@ function Editor({
   const fileRef = useRef<HTMLInputElement>(null);
   const reviewFileRef = useRef<HTMLInputElement>(null);
 
+  // Load per-page WhatsApp number from site_content
+  useEffect(() => {
+    if (!initial.slug) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("site_content" as any)
+        .select("value")
+        .eq("key", `landing_whatsapp_${initial.slug}`)
+        .maybeSingle();
+      if (active && data?.value) {
+        setWhatsappNumber(data.value);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [initial.slug]);
+
   // ---- Global landing-page texts (stored in site_content, shared by ALL landing pages) ----
   const GLOBAL_TEXT_KEYS = [
+    "landing_default_phone",
+    "landing_default_whatsapp",
     "landing_security_note",
     "landing_visit_eyebrow",
     "landing_visit_headline",
@@ -510,6 +532,18 @@ function Editor({
     if (res.error) {
       toast.error(res.error.message);
       return;
+    }
+    if (v.slug) {
+      await supabase
+        .from("site_content" as any)
+        .upsert(
+          {
+            key: `landing_whatsapp_${v.slug.trim()}`,
+            value: (whatsappNumber ?? "").trim(),
+          },
+          { onConflict: "key" },
+        );
+      qc.invalidateQueries({ queryKey: ["site-content"] });
     }
     toast.success("Saved");
     onSaved();
@@ -839,24 +873,43 @@ function Editor({
           />
         </SectionRow>
 
-        <SectionRow id="cta" title="CTA">
-          <div className="grid md:grid-cols-2 gap-4">
+        <SectionRow id="cta" title="Call & WhatsApp Buttons (কল ও হোয়াটসঅ্যাপ)">
+          <p className="text-xs text-muted-foreground mb-4">
+            এখানে ল্যান্ডিং পেজের কল নম্বর এবং হোয়াটসঅ্যাপ নম্বর আলাদাভাবে সেট করতে পারেন। খালি রাখলে গ্লোবাল ডিফল্ট নম্বর ব্যবহৃত হবে।
+          </p>
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <Label>Button text</Label>
+              <Label>Button text (অর্ডার বোতাম)</Label>
               <input
                 className={inputCls}
                 value={v.cta_button_text ?? ""}
                 onChange={(e) => upd("cta_button_text", e.target.value)}
+                placeholder="অর্ডার করুন"
               />
             </div>
             <div>
-              <Label>Phone (for Call button)</Label>
+              <Label>Call Phone (কল করার নম্বর)</Label>
               <input
                 className={inputCls}
                 value={v.cta_phone ?? ""}
                 onChange={(e) => upd("cta_phone", e.target.value)}
-                placeholder="+8801XXXXXXXXX"
+                placeholder="01677-870998"
               />
+              <span className="text-[11px] text-muted-foreground block mt-1">
+                'ফোন করুন' বাটনে চাপ দিলে এই নম্বরে কল যাবে।
+              </span>
+            </div>
+            <div>
+              <Label>WhatsApp Number (হোয়াটসঅ্যাপ নম্বর)</Label>
+              <input
+                className={inputCls}
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                placeholder="01677-870998 বা +8801677870998"
+              />
+              <span className="text-[11px] text-muted-foreground block mt-1">
+                'WhatsApp এ অর্ডার করুন' বাটনে এই নম্বরে চ্যাট খুলবে।
+              </span>
             </div>
           </div>
         </SectionRow>
@@ -1030,6 +1083,32 @@ function Editor({
           <p className="text-xs text-muted-foreground mb-4">
             Eta global setting — sob landing page e ekoi text dekhabe. Khali rakhle default text dekhabe.
           </p>
+          <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3 mb-5">
+            <h3 className="font-display text-base">Default Call & WhatsApp (সকল ল্যান্ডিং পেজের ডিফল্ট নম্বর)</h3>
+            <p className="text-xs text-muted-foreground">
+              কোনো ল্যান্ডিং পেজে নির্দিষ্ট নম্বর দেওয়া না থাকলে এই ডিফল্ট নম্বরগুলোতে কল ও হোয়াটসঅ্যাপ যাবে।
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Default Call Number (ডিফল্ট কল নম্বর)</Label>
+                <input
+                  className={inputCls}
+                  value={globalTexts.landing_default_phone ?? ""}
+                  onChange={(e) => updGlobal("landing_default_phone", e.target.value)}
+                  placeholder="01677-870998"
+                />
+              </div>
+              <div>
+                <Label>Default WhatsApp Number (ডিফল্ট হোয়াটসঅ্যাপ নম্বর)</Label>
+                <input
+                  className={inputCls}
+                  value={globalTexts.landing_default_whatsapp ?? ""}
+                  onChange={(e) => updGlobal("landing_default_whatsapp", e.target.value)}
+                  placeholder="01677-870998 বা +8801677870998"
+                />
+              </div>
+            </div>
+          </div>
           <div>
             <Label>Security note (order button er niche)</Label>
             <textarea

@@ -2,7 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { landingPageBySlugOptions } from "@/lib/landing-queries";
-import { featuredProductsOptions } from "@/lib/queries";
+import { featuredProductsOptions, siteContentOptions } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/external";
 import { queryOptions } from "@tanstack/react-query";
 import { Check, ShoppingCart, Phone, Leaf, ShieldCheck, Truck, Wallet, ChevronDown, Play, Palette, Heart, Award, Scissors, Gem, Package } from "lucide-react";
@@ -185,6 +185,35 @@ function LandingSlugPage() {
   const toBn = (n: number) =>
     String(n).replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[Number(d)]);
 
+  const { data: siteContent } = useQuery(siteContentOptions());
+
+  // Resolve Call Phone number (page > landing default > site phone > fallback)
+  const callPhone =
+    page.cta_phone?.trim() ||
+    siteContent?.landing_default_phone?.trim() ||
+    siteContent?.contact_phone?.trim() ||
+    "01677-870998";
+
+  // Resolve WhatsApp number (page slug specific > landing default > page call phone > site whatsapp > fallback)
+  const rawWa =
+    siteContent?.[`landing_whatsapp_${page.slug}`]?.trim() ||
+    siteContent?.landing_default_whatsapp?.trim() ||
+    page.cta_phone?.trim() ||
+    siteContent?.contact_whatsapp?.trim() ||
+    "01677-870998";
+
+  const cleanDigits = rawWa.replace(/[^\d]/g, "");
+  const waNumber = cleanDigits.startsWith("880")
+    ? cleanDigits
+    : cleanDigits.startsWith("0")
+      ? `88${cleanDigits}`
+      : `880${cleanDigits}`;
+
+  const waGreeting = encodeURIComponent(
+    `আসসালামু আলাইকুম! আমি "${page.hero_headline || "Ibn Mobarak Art Gallery"}" সম্পর্কে জানতে চাচ্ছি।`,
+  );
+  const whatsappUrl = `https://wa.me/${waNumber}?text=${waGreeting}`;
+
   const features = page.features?.length ? page.features.map((f: any) => ({ t: f.title, d: f.description || "" })) : WHY_WITHU;
   const faq = page.faq?.length ? page.faq : FALLBACK_FAQ;
 
@@ -322,10 +351,11 @@ function LandingSlugPage() {
                       <ShoppingCart className="w-5 h-5" /> এখনই অর্ডার করুন
                       <span className="ml-1 opacity-70 group-hover:translate-x-0.5 transition">→</span>
                     </a>
-                    {page.cta_phone && (
+                    {callPhone && (
                       <a
-                        href={`tel:${page.cta_phone}`}
+                        href={`tel:${callPhone}`}
                         className="h-14 px-5 inline-flex items-center justify-center gap-2 rounded-full border-2 border-border hover:border-accent text-foreground hover:text-accent font-semibold text-sm transition"
+                        title={`কল করুন: ${callPhone}`}
                       >
                         <Phone className="w-4 h-4" />
                       </a>
@@ -697,28 +727,28 @@ function LandingSlugPage() {
                   qty={qty}
                   unitPrice={finalPrice}
                   originalUnitPrice={originalPrice}
-                  ctaPhone={page.cta_phone}
+                  ctaPhone={callPhone}
                   ctaText={page.cta_button_text}
                 />
 
 
-                {page.cta_phone && (
+                {callPhone && (
                   <a
-                    href={`tel:${page.cta_phone}`}
-                    className="mt-3 w-full h-12 rounded-2xl border-2 border-accent text-accent font-semibold flex items-center justify-center gap-2"
+                    href={`tel:${callPhone}`}
+                    className="mt-3 w-full h-12 rounded-2xl border-2 border-accent text-accent font-semibold flex items-center justify-center gap-2 hover:bg-accent/10 transition"
                   >
-                    <Phone className="w-4 h-4" /> ফোন করুন: {page.cta_phone}
+                    <Phone className="w-4 h-4" /> ফোন করুন: {callPhone}
                   </a>
                 )}
-                {page.cta_phone && (
+                {waNumber && (
                   <a
-                    href={`https://wa.me/${page.cta_phone.replace(/[^0-9]/g, "")}`}
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noopener"
-                    className="mt-2 w-full h-12 rounded-2xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#1ebe5d] transition"
+                    className="mt-2 w-full h-12 rounded-2xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#1ebe5d] transition shadow-sm"
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                    WhatsApp এ অর্ডার করুন
+                    <span>WhatsApp এ অর্ডার করুন</span>
                   </a>
                 )}
               </div>
@@ -734,22 +764,24 @@ function LandingSlugPage() {
 
       {/* ============ STICKY BOTTOM CTA (mobile) ============ */}
       <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-background/95 backdrop-blur border-t border-border p-3 flex items-center gap-2 shadow-2xl">
-        {page.cta_phone && (
+        {callPhone && (
           <a
-            href={`tel:${page.cta_phone}`}
-            className="h-12 w-12 rounded-xl border-2 border-accent text-accent flex items-center justify-center shrink-0"
+            href={`tel:${callPhone}`}
+            className="h-12 w-12 rounded-xl border-2 border-accent text-accent flex items-center justify-center shrink-0 hover:bg-accent/10 transition"
             aria-label="Call"
+            title={`কল করুন: ${callPhone}`}
           >
             <Phone className="w-5 h-5" />
           </a>
         )}
-        {page.cta_phone && (
+        {waNumber && (
           <a
-            href={`https://wa.me/${page.cta_phone.replace(/[^0-9]/g, "")}`}
+            href={whatsappUrl}
             target="_blank"
             rel="noopener"
             aria-label="WhatsApp"
-            className="h-12 w-12 rounded-xl bg-[#25D366] text-white flex items-center justify-center shrink-0"
+            className="h-12 w-12 rounded-xl bg-[#25D366] text-white flex items-center justify-center shrink-0 hover:bg-[#1ebe5d] transition shadow-md"
+            title={`WhatsApp: ${rawWa}`}
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
           </a>
