@@ -151,3 +151,65 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     return { orderId: order.id, total };
   });
+
+const updateAdminOrderSchema = z.object({
+  orderId: z.string().min(1),
+  form: z.object({
+    customer_name: z.string().trim().min(1),
+    customer_phone: z.string().trim().min(1),
+    address: z.string().trim().min(1),
+    notes: z.string().trim().optional().or(z.literal("")),
+    status: z.string().trim().min(1),
+  }),
+  changes: z.array(
+    z.object({
+      field: z.string(),
+      oldVal: z.string().nullable().optional(),
+      newVal: z.string().nullable().optional(),
+    }),
+  ),
+  user: z.object({
+    id: z.string(),
+    email: z.string().nullable().optional(),
+  }),
+});
+
+export const updateAdminOrder = createServerFn({ method: "POST" })
+  .validator((input: unknown) => updateAdminOrderSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    // 1. Update orders table
+    const { error: upErr } = await admin
+      .from("orders")
+      .update({
+        customer_name: data.form.customer_name,
+        customer_phone: data.form.customer_phone,
+        address: data.form.address,
+        notes: data.form.notes || null,
+        status: data.form.status,
+      })
+      .eq("id", data.orderId);
+
+    if (upErr) throw new Error(upErr.message);
+
+    // 2. Insert order history via service_role to avoid client RLS policy failures
+    if (data.changes.length > 0) {
+      const rows = data.changes.map((c) => ({
+        order_id: data.orderId,
+        field_name: c.field,
+        old_value: c.oldVal ?? null,
+        new_value: c.newVal ?? null,
+        changed_by: data.user.id,
+        changed_by_email: data.user.email ?? null,
+      }));
+      const { error: histErr } = await admin.from("order_history").insert(rows);
+      if (histErr) {
+        console.warn("Could not insert order_history:", histErr);
+      }
+    }
+
+    return { success: true };
+  });

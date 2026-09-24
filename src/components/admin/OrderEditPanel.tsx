@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ORDER_STATUSES, type AdminOrder } from "@/lib/order-admin";
+import { updateAdminOrder } from "@/lib/orders.functions";
 
 export async function saveOrderChanges(
   order: AdminOrder,
@@ -32,31 +33,17 @@ export async function saveOrderChanges(
     .filter(([k, oldVal]) => form[k] !== oldVal)
     .map(([k, oldVal]) => ({ field: k as string, oldVal, newVal: form[k] }));
 
-  const { error: upErr } = await supabase
-    .from("orders")
-    .update({
-      customer_name: form.customer_name,
-      customer_phone: form.customer_phone,
-      address: form.address,
-      notes: form.notes || null,
-      status: form.status,
-    })
-    .eq("id", order.id);
-
-  if (upErr) throw new Error(upErr.message);
-
-  if (changes.length) {
-    const rows = changes.map((c) => ({
-      order_id: order.id,
-      field_name: c.field,
-      old_value: c.oldVal,
-      new_value: c.newVal,
-      changed_by: user.id,
-      changed_by_email: user.email ?? null,
-    }));
-    const { error: histErr } = await supabase.from("order_history").insert(rows);
-    if (histErr) toast.error(`Saved, but history failed: ${histErr.message}`);
-  }
+  await updateAdminOrder({
+    data: {
+      orderId: order.id,
+      form,
+      changes,
+      user: {
+        id: user.id,
+        email: user.email ?? null,
+      },
+    },
+  });
 }
 
 export function OrderEditPanel({
