@@ -487,7 +487,12 @@ function FooterPreviewCard({
           <p>
             © {new Date().getFullYear()} Ibn Mobarak Art Gallery. {copyright || "সর্বস্বত্ব সংরক্ষিত।"}
           </p>
-          <p className="text-[10px] text-[#6A6256]">Crafted for artistic excellence</p>
+          <p className="text-[10px] text-[#8C8375] inline-flex items-center gap-1">
+            Designed and developed by{" "}
+            <span className="text-[#C8BFB0] font-medium underline underline-offset-2 decoration-dotted">
+              Ibrahim Kholilullah
+            </span>
+          </p>
         </div>
       </div>
     </div>
@@ -2852,6 +2857,19 @@ function AdminSiteContent() {
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                     />
                   </div>
+                </div>
+
+                {/* Developer Credit Protected Info */}
+                <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>
+                      <strong className="text-foreground">ডেভেলপার ক্রেডিট (Developer Credit):</strong> Designed and developed by Ibrahim Kholilullah
+                    </span>
+                  </div>
+                  <span className="self-start sm:self-auto px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                    স্থায়ী ও অপরিবর্তনযোগ্য (Locked)
+                  </span>
                 </div>
               </div>
             </section>

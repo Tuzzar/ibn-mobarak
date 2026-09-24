@@ -144,7 +144,8 @@ export function Footer() {
               শর্তাবলী ও নিয়ম
             </Link>
           </div>
-          <span className="inline-flex items-center gap-1">
+          {/* Permanent developer credit: Locked & uneditable from admin dashboard */}
+          <span className="inline-flex items-center gap-1 select-none">
             Designed and developed by
             <a
               href="https://ibrahimkholilullah.com"
