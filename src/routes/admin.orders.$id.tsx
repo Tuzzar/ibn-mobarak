@@ -1,13 +1,34 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Package, Receipt, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Package,
+  Receipt,
+  User,
+  Printer,
+  Trash2,
+  RotateCcw,
+  Pencil,
+  AlertTriangle,
+} from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/external";
 import { formatBDT } from "@/lib/cart";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { CourierPanel } from "@/components/admin/CourierPanel";
 import { CourierDispatchPanel } from "@/components/admin/CourierDispatchPanel";
 import { OrderEditPanel } from "@/components/admin/OrderEditPanel";
 import { OrderHistoryPanel } from "@/components/admin/OrderHistoryPanel";
+import { OrderInvoiceModal } from "@/components/admin/OrderInvoiceModal";
+import { OrderItemsEditModal } from "@/components/admin/OrderItemsEditModal";
+import {
+  moveAdminOrderToTrash,
+  restoreAdminOrderFromTrash,
+  deleteAdminOrderPermanently,
+} from "@/lib/orders.functions";
 import {
   ORDER_STATUS_STYLES,
   orderLabel,
@@ -63,10 +84,78 @@ function OrderDetailPage() {
   }
 
   const others = (related ?? []).filter((o) => o.id !== order.id);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [isItemsEditOpen, setIsItemsEditOpen] = useState(false);
+  const [isTrashLoading, setIsTrashLoading] = useState(false);
+  const navigate = useNavigate();
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-order", id] });
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
     qc.invalidateQueries({ queryKey: ["order-history", id] });
+  };
+
+  const handleMoveToTrash = async () => {
+    if (!confirm("Are you sure you want to move this order to Trash?")) return;
+    setIsTrashLoading(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      await moveAdminOrderToTrash({
+        data: {
+          orderId: order.id,
+          user: {
+            id: userRes?.user?.id || "",
+            email: userRes?.user?.email || null,
+          },
+        },
+      });
+      toast.success("Order moved to Trash");
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to move to trash");
+    } finally {
+      setIsTrashLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setIsTrashLoading(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const res = await restoreAdminOrderFromTrash({
+        data: {
+          orderId: order.id,
+          user: {
+            id: userRes?.user?.id || "",
+            email: userRes?.user?.email || null,
+          },
+        },
+      });
+      toast.success(`Order restored to ${res.restoredStatus}`);
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to restore order");
+    } finally {
+      setIsTrashLoading(false);
+    }
+  };
+
+  const handleDeletePermanently = async () => {
+    if (
+      !confirm(
+        "WARNING: This will permanently delete this order and all its history from the database! This action CANNOT be undone. Are you sure?",
+      )
+    )
+      return;
+    setIsTrashLoading(true);
+    try {
+      await deleteAdminOrderPermanently({ data: { orderId: order.id } });
+      toast.success("Order permanently deleted");
+      navigate({ to: "/admin/orders" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete order");
+      setIsTrashLoading(false);
+    }
   };
 
   return (
@@ -78,20 +167,96 @@ function OrderDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Back to orders
       </Link>
 
-      <header className="mt-4 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-3xl md:text-4xl">Order {orderLabel(order)}</h1>
-        <span
-          className={cn(
-            "px-3 py-1 rounded-full border text-[11px] font-medium capitalize",
-            ORDER_STATUS_STYLES[order.status] ?? "bg-secondary text-foreground border-border",
+      <header className="mt-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-3xl md:text-4xl">Order {orderLabel(order)}</h1>
+          <span
+            className={cn(
+              "px-3 py-1 rounded-full border text-[11px] font-medium capitalize",
+              ORDER_STATUS_STYLES[order.status] ?? "bg-secondary text-foreground border-border",
+            )}
+          >
+            {order.status}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {new Date(order.created_at).toLocaleString()}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsInvoiceOpen(true)}
+            className="gap-1.5 border-border hover:border-gold/50"
+          >
+            <Printer className="w-4 h-4 text-primary" /> Print Invoice
+          </Button>
+
+          {order.status === "trash" ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRestore}
+                disabled={isTrashLoading}
+                className="gap-1.5 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              >
+                <RotateCcw className="w-4 h-4" /> Restore
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeletePermanently}
+                disabled={isTrashLoading}
+                className="gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Permanently
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMoveToTrash}
+              disabled={isTrashLoading}
+              className="gap-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+            >
+              <Trash2 className="w-4 h-4" /> Move to Trash
+            </Button>
           )}
-        >
-          {order.status}
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {new Date(order.created_at).toLocaleString()}
-        </span>
+        </div>
       </header>
+
+      {/* Trash Warning Banner */}
+      {order.status === "trash" && (
+        <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>This order is currently in the Trash bin. It is hidden from active orders.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRestore}
+              disabled={isTrashLoading}
+              className="h-8 text-xs gap-1 border-amber-500/40 hover:bg-amber-500/10"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Restore Order
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDeletePermanently}
+              disabled={isTrashLoading}
+              className="h-8 text-xs gap-1"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete Permanently
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 grid md:grid-cols-2 gap-5">
         <Card title="Customer information" icon={<User className="w-4 h-4 text-primary" />}>
@@ -117,7 +282,20 @@ function OrderDetailPage() {
       </div>
 
       <div className="mt-5">
-        <Card title="Items" icon={<Package className="w-4 h-4 text-primary" />}>
+        <Card
+          title="Items"
+          icon={<Package className="w-4 h-4 text-primary" />}
+          extra={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsItemsEditOpen(true)}
+              className="h-8 text-xs gap-1.5 border-gold/40 hover:bg-gold/10 text-foreground"
+            >
+              <Pencil className="w-3.5 h-3.5 text-gold" /> Edit Products
+            </Button>
+          }
+        >
           <ul className="divide-y divide-border">
             {(order.items ?? []).map((it, i) => (
               <li key={i} className="flex items-center justify-between py-3 text-sm">
@@ -216,6 +394,19 @@ function OrderDetailPage() {
           <OrderHistoryPanel orderId={order.id} />
         </Card>
       </div>
+
+      <OrderInvoiceModal
+        order={order}
+        isOpen={isInvoiceOpen}
+        onClose={() => setIsInvoiceOpen(false)}
+      />
+
+      <OrderItemsEditModal
+        order={order}
+        isOpen={isItemsEditOpen}
+        onClose={() => setIsItemsEditOpen(false)}
+        onSaved={invalidate}
+      />
     </div>
   );
 }
@@ -223,18 +414,23 @@ function OrderDetailPage() {
 function Card({
   title,
   icon,
+  extra,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
+  extra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="bg-card border border-border rounded-2xl p-5 md:p-6">
       {title ? (
-        <div className="flex items-center gap-2 mb-4">
-          {icon}
-          <h2 className="font-display text-lg">{title}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h2 className="font-display text-lg">{title}</h2>
+          </div>
+          {extra}
         </div>
       ) : null}
       {children}
@@ -252,3 +448,4 @@ function Row({ label, value, numeric }: { label: string; value: string; numeric?
     </div>
   );
 }
+

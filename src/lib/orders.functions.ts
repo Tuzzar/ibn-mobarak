@@ -213,3 +213,197 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+const trashActionSchema = z.object({
+  orderId: z.string().min(1),
+  user: z.object({
+    id: z.string(),
+    email: z.string().nullable().optional(),
+  }),
+});
+
+export const moveAdminOrderToTrash = createServerFn({ method: "POST" })
+  .validator((input: unknown) => trashActionSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { data: curr } = await admin
+      .from("orders")
+      .select("status")
+      .eq("id", data.orderId)
+      .single();
+
+    const oldStatus = curr?.status || "pending";
+
+    const { error: upErr } = await admin
+      .from("orders")
+      .update({ status: "trash" })
+      .eq("id", data.orderId);
+
+    if (upErr) throw new Error(upErr.message);
+
+    await admin.from("order_history").insert({
+      order_id: data.orderId,
+      field_name: "status",
+      old_value: oldStatus,
+      new_value: "trash",
+      changed_by: data.user.id,
+      changed_by_email: data.user.email ?? null,
+    });
+
+    return { success: true };
+  });
+
+export const restoreAdminOrderFromTrash = createServerFn({ method: "POST" })
+  .validator((input: unknown) => trashActionSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { data: history } = await admin
+      .from("order_history")
+      .select("old_value")
+      .eq("order_id", data.orderId)
+      .eq("field_name", "status")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const prevStatus =
+      history?.[0]?.old_value && history[0].old_value !== "trash"
+        ? history[0].old_value
+        : "pending";
+
+    const { error: upErr } = await admin
+      .from("orders")
+      .update({ status: prevStatus })
+      .eq("id", data.orderId);
+
+    if (upErr) throw new Error(upErr.message);
+
+    await admin.from("order_history").insert({
+      order_id: data.orderId,
+      field_name: "status",
+      old_value: "trash",
+      new_value: prevStatus,
+      changed_by: data.user.id,
+      changed_by_email: data.user.email ?? null,
+    });
+
+    return { success: true, restoredStatus: prevStatus };
+  });
+
+const deletePermanentlySchema = z.object({
+  orderId: z.string().min(1),
+});
+
+export const deleteAdminOrderPermanently = createServerFn({ method: "POST" })
+  .validator((input: unknown) => deletePermanentlySchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { error: delErr } = await admin
+      .from("orders")
+      .delete()
+      .eq("id", data.orderId);
+
+    if (delErr) throw new Error(delErr.message);
+
+    return { success: true };
+  });
+
+const updateAdminOrderItemsSchema = z.object({
+  orderId: z.string().min(1),
+  items: z.array(
+    z.object({
+      name: z.string().min(1),
+      quantity: z.number().int().positive(),
+      price: z.number().nonnegative(),
+      unit: z.string().optional(),
+      size: z.string().nullable().optional(),
+    }),
+  ),
+  subtotal: z.number().nonnegative(),
+  delivery_fee: z.number().nonnegative(),
+  total: z.number().nonnegative(),
+  user: z.object({
+    id: z.string(),
+    email: z.string().nullable().optional(),
+  }),
+});
+
+export const updateAdminOrderItems = createServerFn({ method: "POST" })
+  .validator((input: unknown) => updateAdminOrderItemsSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { data: curr } = await admin
+      .from("orders")
+      .select("items, subtotal, delivery_fee, total")
+      .eq("id", data.orderId)
+      .single();
+
+    const { error: upErr } = await admin
+      .from("orders")
+      .update({
+        items: data.items as unknown as Json,
+        subtotal: data.subtotal,
+        delivery_fee: data.delivery_fee,
+        total: data.total,
+      })
+      .eq("id", data.orderId);
+
+    if (upErr) throw new Error(upErr.message);
+
+    const historyRows = [];
+    if (curr) {
+      if (Number(curr.subtotal) !== Number(data.subtotal)) {
+        historyRows.push({
+          order_id: data.orderId,
+          field_name: "subtotal",
+          old_value: String(curr.subtotal),
+          new_value: String(data.subtotal),
+          changed_by: data.user.id,
+          changed_by_email: data.user.email ?? null,
+        });
+      }
+      if (Number(curr.delivery_fee) !== Number(data.delivery_fee)) {
+        historyRows.push({
+          order_id: data.orderId,
+          field_name: "delivery_fee",
+          old_value: String(curr.delivery_fee),
+          new_value: String(data.delivery_fee),
+          changed_by: data.user.id,
+          changed_by_email: data.user.email ?? null,
+        });
+      }
+      if (Number(curr.total) !== Number(data.total)) {
+        historyRows.push({
+          order_id: data.orderId,
+          field_name: "total",
+          old_value: String(curr.total),
+          new_value: String(data.total),
+          changed_by: data.user.id,
+          changed_by_email: data.user.email ?? null,
+        });
+      }
+    }
+    historyRows.push({
+      order_id: data.orderId,
+      field_name: "items",
+      old_value: `${Array.isArray(curr?.items) ? curr.items.length : 0} items`,
+      new_value: `${data.items.length} items (${data.items.map((it) => `${it.name} x${it.quantity}`).join(", ")})`,
+      changed_by: data.user.id,
+      changed_by_email: data.user.email ?? null,
+    });
+
+    await admin.from("order_history").insert(historyRows);
+
+    return { success: true };
+  });

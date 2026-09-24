@@ -14,6 +14,7 @@ export const ORDER_STATUS_STYLES: Record<string, string> = {
   shipped: "bg-indigo-50 text-indigo-700 border-indigo-200",
   delivered: "bg-emerald-50 text-emerald-700 border-emerald-200",
   cancelled: "bg-rose-50 text-rose-700 border-rose-200",
+  trash: "bg-stone-100 text-stone-600 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700",
 };
 
 export const ORDER_FIELD_LABELS: Record<string, string> = {
