@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -31,9 +31,13 @@ import {
   restoreFromTrash,
   deleteMediaPermanently,
   emptyTrash,
+  bulkMoveToTrash,
+  bulkRestoreFromTrash,
+  bulkDeleteMediaPermanently,
   type MediaFile,
 } from "@/lib/media.functions";
 import { supabase } from "@/integrations/supabase/external";
+import { uploadFileToR2 } from "@/lib/r2-storage";
 import { Spinner } from "@/components/site/Spinner";
 
 export const Route = createFileRoute("/admin/media")({
@@ -78,6 +82,11 @@ function AdminMediaPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadTargetBucket, setUploadTargetBucket] = useState<"products" | "product-images">("products");
+
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkTrashModal, setConfirmBulkTrashModal] = useState(false);
+  const [confirmBulkDeleteModal, setConfirmBulkDeleteModal] = useState(false);
 
   // Query: Storage files and stats
   const {
@@ -210,35 +219,73 @@ function AdminMediaPage() {
     },
   });
 
-  // Handle direct file upload
+  const bulkTrashMutation = useMutation({
+    mutationFn: async (items: Array<{ bucket: string; fullPath: string }>) => {
+      return bulkMoveToTrash({ data: { items } });
+    },
+    onSuccess: (res) => {
+      toast.success(`${res.count}টি ফাইল ট্র্যাশে পাঠানো হয়েছে!`);
+      setSelectedIds(new Set());
+      setConfirmBulkTrashModal(false);
+      qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
+    },
+    onError: (err: any) => {
+      toast.error(`ট্র্যাশে পাঠানো ব্যর্থ হয়েছে: ${err.message}`);
+    },
+  });
+
+  const bulkRestoreMutation = useMutation({
+    mutationFn: async (items: Array<{ bucket: string; trashPath: string }>) => {
+      return bulkRestoreFromTrash({ data: { items } });
+    },
+    onSuccess: (res) => {
+      toast.success(`${res.count}টি ফাইল ট্র্যাশ থেকে পুনরুদ্ধার করা হয়েছে!`);
+      setSelectedIds(new Set());
+      qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
+    },
+    onError: (err: any) => {
+      toast.error(`পুনরুদ্ধার ব্যর্থ হয়েছে: ${err.message}`);
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (items: Array<{ bucket: string; fullPath: string }>) => {
+      return bulkDeleteMediaPermanently({ data: { items } });
+    },
+    onSuccess: (res) => {
+      toast.success(`${res.count}টি ফাইল স্থায়ীভাবে মুছে ফেলা হয়েছে!`);
+      setSelectedIds(new Set());
+      setConfirmBulkDeleteModal(false);
+      qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
+    },
+    onError: (err: any) => {
+      toast.error(`মুছে ফেলা ব্যর্থ হয়েছে: ${err.message}`);
+    },
+  });
+
+  // Handle direct file upload to Cloudflare R2
   const handleUploadFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
     let successCount = 0;
+    const folder = uploadTargetBucket === "product-images" ? "site-content" : "products";
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase() : "";
-      const baseName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
-      const path = `${Date.now()}-${baseName}${ext}`;
-
-      const { error } = await supabase.storage
-        .from(uploadTargetBucket)
-        .upload(path, file, { upsert: false });
-
-      if (error) {
-        toast.error(`${file.name} আপলোড ব্যর্থ: ${error.message}`);
-      } else {
+      try {
+        await uploadFileToR2(file, folder);
         successCount++;
+      } catch (err: any) {
+        toast.error(`${file.name} আপলোড ব্যর্থ: ${err.message}`);
       }
     }
 
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (successCount > 0) {
-      toast.success(`${successCount}টি ছবি সফলভাবে আপলোড হয়েছে!`);
+      toast.success(`${successCount}টি ছবি সফলভাবে Cloudflare R2-তে আপলোড হয়েছে!`);
       qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
     }
   };
@@ -248,6 +295,55 @@ function AdminMediaPage() {
     setCopiedId(id);
     toast.success("লিঙ্ক কপি হয়েছে!");
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const downloadMediaFile = async (url: string, filename: string, id: string) => {
+    if (downloadingId) return;
+    setDownloadingId(id);
+    const toastId = toast.loading("ফাইলটি ডাউনলোড হচ্ছে...");
+    try {
+      const response = await fetch(url, { mode: "cors" });
+      if (!response.ok) {
+        throw new Error(`HTTP status ${response.status}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = blobUrl;
+      let safeFilename = filename || "download";
+      if (!safeFilename.includes(".") && blob.type) {
+        const ext = blob.type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+        safeFilename = `${safeFilename}.${ext}`;
+      }
+      a.download = safeFilename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 500);
+      toast.success("ডাউনলোড সম্পন্ন হয়েছে!", { id: toastId });
+    } catch (err) {
+      console.warn("Direct blob download failed, attempting window trigger:", err);
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.download = filename || "download";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 500);
+        toast.info("ফাইলটি নতুন ট্যাবে খোলা হয়েছে। সেভ করতে রাইট ক্লিক করে 'Save Image As' চাপুন।", { id: toastId });
+      } catch (fallbackErr) {
+        toast.error("ডাউনলোড করতে সমস্যা হয়েছে। দয়া করে লিঙ্কটি কপি করে ব্রাউজারে খুলুন।", { id: toastId });
+      }
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   // Filtered files for storage
@@ -268,8 +364,10 @@ function AdminMediaPage() {
         list = list.filter((f) => f.fullPath.startsWith("landing/"));
       } else if (selectedBucket === "site-content") {
         list = list.filter((f) => f.fullPath.startsWith("site-content/"));
+      } else if (selectedBucket === "products") {
+        list = list.filter((f) => f.fullPath.startsWith("products/") || f.bucket.includes("products"));
       } else {
-        list = list.filter((f) => f.bucket === selectedBucket && !f.fullPath.includes("/"));
+        list = list.filter((f) => f.bucket === selectedBucket || f.fullPath.startsWith(`${selectedBucket}/`));
       }
     }
 
@@ -301,6 +399,54 @@ function AdminMediaPage() {
         (p.category && p.category.toLowerCase().includes(q)),
     );
   }, [catalogPhotos, search]);
+
+  // Clear selection whenever tab, search, or bucket filter changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [tab, search, selectedBucket]);
+
+  const toggleSelectFile = (fileId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(fileId)) next.delete(fileId);
+      else next.add(fileId);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedIds(new Set(filteredStorageFiles.map((f) => f.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const selectedFilesList = useMemo(() => {
+    if (selectedIds.size === 0) return [];
+    return filteredStorageFiles.filter((f) => selectedIds.has(f.id));
+  }, [filteredStorageFiles, selectedIds]);
+
+  const handleExecuteBulkTrash = () => {
+    if (selectedFilesList.length === 0) return;
+    bulkTrashMutation.mutate(
+      selectedFilesList.map((f) => ({ bucket: f.bucket, fullPath: f.fullPath }))
+    );
+  };
+
+  const handleExecuteBulkDelete = () => {
+    if (selectedFilesList.length === 0) return;
+    bulkDeleteMutation.mutate(
+      selectedFilesList.map((f) => ({ bucket: f.bucket, fullPath: f.fullPath }))
+    );
+  };
+
+  const handleExecuteBulkRestore = () => {
+    if (selectedFilesList.length === 0) return;
+    bulkRestoreMutation.mutate(
+      selectedFilesList.map((f) => ({ bucket: f.bucket, trashPath: f.fullPath }))
+    );
+  };
 
   return (
     <div className="p-5 md:p-10 space-y-6">
@@ -495,10 +641,10 @@ function AdminMediaPage() {
                 onChange={(e) => setSelectedBucket(e.target.value)}
                 className="w-full bg-background border border-border px-3 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-primary"
               >
-                <option value="all">সকল ফোল্ডার / বাকেট</option>
-                <option value="products">Products Bucket ({summary?.bucketStats?.products?.count ?? 0})</option>
-                <option value="landing">Landing Pages ({summary?.files.filter((f) => f.fullPath.startsWith("landing/")).length ?? 0})</option>
+                <option value="all">সকল ফোল্ডার (All R2 Media)</option>
+                <option value="products">Products ({summary?.files.filter((f) => f.fullPath.startsWith("products/")).length ?? 0})</option>
                 <option value="site-content">Site Content / Banners ({summary?.files.filter((f) => f.fullPath.startsWith("site-content/")).length ?? 0})</option>
+                <option value="landing">Landing Pages ({summary?.files.filter((f) => f.fullPath.startsWith("landing/")).length ?? 0})</option>
               </select>
             </div>
           )}
@@ -558,19 +704,48 @@ function AdminMediaPage() {
           </div>
         </div>
 
-        {/* Count indicator */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-          <span>
-            {tab === "catalog" ? (
-              <>মোট <strong>{filteredCatalogPhotos.length}টি</strong> ক্যাটালগ প্রোডাক্ট ছবি</>
-            ) : (
-              <>
-                মোট <strong>{filteredStorageFiles.length}টি</strong> ফাইল
-                {tab === "active" && <> ({formatBytes(filteredStorageFiles.reduce((s, f) => s + f.size, 0))})</>}
-                {tab === "trash" && <> ({formatBytes(filteredStorageFiles.reduce((s, f) => s + f.size, 0))} ট্র্যাশে)</>}
-              </>
+        {/* Count indicator & Selection Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground pt-1 border-t border-border/40">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>
+              {tab === "catalog" ? (
+                <>মোট <strong>{filteredCatalogPhotos.length}টি</strong> ক্যাটালগ প্রোডাক্ট ছবি</>
+              ) : (
+                <>
+                  মোট <strong>{filteredStorageFiles.length}টি</strong> ফাইল
+                  {tab === "active" && <> ({formatBytes(filteredStorageFiles.reduce((s, f) => s + f.size, 0))})</>}
+                  {tab === "trash" && <> ({formatBytes(filteredStorageFiles.reduce((s, f) => s + f.size, 0))} ট্র্যাশে)</>}
+                </>
+              )}
+            </span>
+
+            {tab !== "catalog" && filteredStorageFiles.length > 0 && (
+              <div className="flex items-center gap-2 pl-3 border-l border-border/60">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-foreground hover:text-primary font-medium">
+                  <input
+                    type="checkbox"
+                    checked={filteredStorageFiles.length > 0 && selectedIds.size === filteredStorageFiles.length}
+                    onChange={(e) => {
+                      if (e.target.checked) selectAllVisible();
+                      else clearSelection();
+                    }}
+                    className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <span>সব নির্বাচন করুন {selectedIds.size > 0 && `(${selectedIds.size}/${filteredStorageFiles.length})`}</span>
+                </label>
+                {selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="text-[11px] text-muted-foreground hover:text-rose-500 transition cursor-pointer underline"
+                  >
+                    সিলেকশন বাতিল
+                  </button>
+                )}
+              </div>
             )}
-          </span>
+          </div>
+
           {search && (
             <button
               type="button"
@@ -622,6 +797,14 @@ function AdminMediaPage() {
                       title="ছবির লিঙ্ক কপি করুন"
                     >
                       {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadMediaFile(item.url, `${item.productSlug || "photo"}.jpg`, item.id)}
+                      className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition cursor-pointer shadow-md"
+                      title="ডাউনলোড করুন"
+                    >
+                      <Download className="w-4 h-4" />
                     </button>
                     <a
                       href={item.url}
@@ -686,6 +869,14 @@ function AdminMediaPage() {
                       >
                         {copiedId === item.id ? "কপি হয়েছে!" : "URL কপি"}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadMediaFile(item.url, `${item.productSlug || "photo"}.jpg`, item.id)}
+                        className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                        title="ডাউনলোড করুন"
+                      >
+                        <Download className="w-3 h-3" /> ডাউনলোড
+                      </button>
                       <a
                         href={`/products/${item.productSlug}`}
                         target="_blank"
@@ -715,37 +906,66 @@ function AdminMediaPage() {
       ) : viewMode === "grid" ? (
         /* Storage Files Grid View */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {filteredStorageFiles.map((file) => (
-            <div
-              key={file.id}
-              className={`group relative bg-card border rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col ${
-                file.isTrash ? "border-rose-500/40 bg-rose-500/5" : "border-border/80 hover:border-primary/50"
-              }`}
-            >
-              {/* Thumbnail */}
+          {filteredStorageFiles.map((file) => {
+            const isSelected = selectedIds.has(file.id);
+            return (
               <div
-                onClick={() => setPreviewFile(file)}
-                className="aspect-square bg-muted relative overflow-hidden flex items-center justify-center cursor-pointer"
+                key={file.id}
+                className={`group relative bg-card border rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col ${
+                  isSelected
+                    ? "ring-2 ring-primary border-primary bg-primary/5"
+                    : file.isTrash
+                    ? "border-rose-500/40 bg-rose-500/5"
+                    : "border-border/80 hover:border-primary/50"
+                }`}
               >
-                <img
-                  src={file.publicUrl}
-                  alt={file.name}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-
-                {/* Badge */}
-                <div className="absolute top-2 left-2 flex gap-1">
-                  {file.isTrash ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white shadow-xs">
-                      Trash
-                    </span>
+                {/* Checkbox Selection Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelectFile(file.id);
+                  }}
+                  className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-md ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground opacity-100 ring-2 ring-primary ring-offset-1"
+                      : selectedIds.size > 0
+                      ? "bg-black/60 text-white/80 hover:text-white opacity-100 backdrop-blur-xs"
+                      : "bg-black/50 hover:bg-black/80 text-white/70 hover:text-white opacity-0 group-hover:opacity-100 backdrop-blur-xs"
+                  }`}
+                  title={isSelected ? "আনসিলেক্ট করুন" : "সিলেক্ট করুন"}
+                >
+                  {isSelected ? (
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
                   ) : (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-black/60 text-white backdrop-blur-xs">
-                      {formatBytes(file.size)}
-                    </span>
+                    <div className="w-3 h-3 rounded-xs border border-white/80" />
                   )}
-                </div>
+                </button>
+
+                {/* Thumbnail */}
+                <div
+                  onClick={() => setPreviewFile(file)}
+                  className="aspect-square bg-muted relative overflow-hidden flex items-center justify-center cursor-pointer"
+                >
+                  <img
+                    src={file.publicUrl}
+                    alt={file.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+
+                  {/* Badge */}
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    {file.isTrash ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white shadow-xs">
+                        Trash
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-black/60 text-white backdrop-blur-xs">
+                        {formatBytes(file.size)}
+                      </span>
+                    )}
+                  </div>
 
                 {/* Quick Overlay Action on Hover */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-2">
@@ -770,6 +990,17 @@ function AdminMediaPage() {
                     title="URL কপি করুন"
                   >
                     {copiedId === file.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadMediaFile(file.publicUrl, file.name, file.id);
+                    }}
+                    className="p-2 rounded-lg bg-white/90 text-black hover:bg-white transition cursor-pointer shadow-md"
+                    title="ডাউনলোড করুন"
+                  >
+                    <Download className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -844,7 +1075,8 @@ function AdminMediaPage() {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       ) : (
         /* Storage Files Table View */
@@ -852,6 +1084,18 @@ function AdminMediaPage() {
           <table className="w-full text-xs text-left min-w-[700px]">
             <thead className="bg-muted/40 border-b border-border font-semibold text-muted-foreground">
               <tr>
+                <th className="p-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredStorageFiles.length > 0 && selectedIds.size === filteredStorageFiles.length}
+                    onChange={(e) => {
+                      if (e.target.checked) selectAllVisible();
+                      else clearSelection();
+                    }}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                    title="সবগুলো সিলেক্ট করুন"
+                  />
+                </th>
                 <th className="p-3 w-14">প্রিভিউ</th>
                 <th className="p-3">ফাইলের নাম</th>
                 <th className="p-3">লোকেশন / পাথ</th>
@@ -861,88 +1105,116 @@ function AdminMediaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredStorageFiles.map((file) => (
-                <tr key={file.id} className="hover:bg-muted/30 transition">
-                  <td className="p-3">
-                    <div
-                      onClick={() => setPreviewFile(file)}
-                      className="w-10 h-10 rounded-lg overflow-hidden bg-muted cursor-pointer"
-                    >
-                      <img src={file.publicUrl} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div
-                      onClick={() => setPreviewFile(file)}
-                      className="font-medium text-foreground hover:text-primary cursor-pointer truncate max-w-xs"
-                      title={file.name}
-                    >
-                      {file.name}
-                    </div>
-                    {file.isTrash && (
-                      <span className="text-[10px] text-rose-500 font-semibold">ট্র্যাশে রয়েছে</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-muted-foreground font-mono text-[11px] truncate max-w-[200px]">
-                    {file.bucket}/{file.fullPath}
-                  </td>
-                  <td className="p-3 font-medium text-foreground">{formatBytes(file.size)}</td>
-                  <td className="p-3 text-muted-foreground whitespace-nowrap">
-                    {new Date(file.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="p-3 text-right space-x-1 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(file.publicUrl, file.id)}
-                      className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px]"
-                    >
-                      {copiedId === file.id ? "কপি হয়েছে!" : "URL কপি"}
-                    </button>
-                    {file.isTrash ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => restoreMutation.mutate({ bucket: file.bucket, trashPath: file.fullPath })}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-medium text-[11px] transition"
-                        >
-                          রিস্টোর
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm("স্থায়ীভাবে মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) {
-                              deletePermanentMutation.mutate({ bucket: file.bucket, fullPath: file.fullPath });
-                            }
-                          }}
-                          className="px-2 py-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition text-[11px]"
-                        >
-                          স্থায়ী মুছুন
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRenameTarget(file);
-                            setRenameValue(file.name);
-                          }}
-                          className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px]"
-                        >
-                          রিনেম
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => trashMutation.mutate({ bucket: file.bucket, fullPath: file.fullPath })}
-                          className="px-2 py-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition text-[11px]"
-                        >
-                          ট্র্যাশে পাঠান
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {filteredStorageFiles.map((file) => {
+                const isSelected = selectedIds.has(file.id);
+                return (
+                  <tr
+                    key={file.id}
+                    className={`transition ${
+                      isSelected
+                        ? "bg-primary/10 hover:bg-primary/15"
+                        : "hover:bg-muted/30"
+                    }`}
+                  >
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectFile(file.id)}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <div
+                        onClick={() => setPreviewFile(file)}
+                        className="w-10 h-10 rounded-lg overflow-hidden bg-muted cursor-pointer"
+                      >
+                        <img src={file.publicUrl} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div
+                        onClick={() => setPreviewFile(file)}
+                        className="font-medium text-foreground hover:text-primary cursor-pointer truncate max-w-xs"
+                        title={file.name}
+                      >
+                        {file.name}
+                      </div>
+                      {file.isTrash && (
+                        <span className="text-[10px] text-rose-500 font-semibold">ট্র্যাশে রয়েছে</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-muted-foreground font-mono text-[11px] truncate max-w-[200px]">
+                      {file.bucket}/{file.fullPath}
+                    </td>
+                    <td className="p-3 font-medium text-foreground">{formatBytes(file.size)}</td>
+                    <td className="p-3 text-muted-foreground whitespace-nowrap">
+                      {new Date(file.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => downloadMediaFile(file.publicUrl, file.name, file.id)}
+                        disabled={downloadingId === file.id}
+                        className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px] inline-flex items-center gap-1 disabled:opacity-50"
+                        title="ডাউনলোড"
+                      >
+                        <Download className={`w-3 h-3 ${downloadingId === file.id ? "animate-bounce text-primary" : ""}`} />
+                        {downloadingId === file.id ? "ডাউনলোড…" : "ডাউনলোড"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(file.publicUrl, file.id)}
+                        className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px]"
+                      >
+                        {copiedId === file.id ? "কপি হয়েছে!" : "URL কপি"}
+                      </button>
+                      {file.isTrash ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => restoreMutation.mutate({ bucket: file.bucket, trashPath: file.fullPath })}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-medium text-[11px] transition"
+                          >
+                            রিস্টোর
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("স্থায়ীভাবে মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) {
+                                deletePermanentMutation.mutate({ bucket: file.bucket, fullPath: file.fullPath });
+                              }
+                            }}
+                            className="px-2 py-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition text-[11px]"
+                          >
+                            স্থায়ী মুছুন
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRenameTarget(file);
+                              setRenameValue(file.name);
+                            }}
+                            className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted transition text-[11px]"
+                          >
+                            রিনেম
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => trashMutation.mutate({ bucket: file.bucket, fullPath: file.fullPath })}
+                            className="px-2 py-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition text-[11px]"
+                          >
+                            ট্র্যাশে পাঠান
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1089,15 +1361,15 @@ function AdminMediaPage() {
 
               {/* Action Buttons */}
               <div className="pt-3 border-t border-border space-y-2">
-                <a
-                  href={previewFile.publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download={previewFile.name}
-                  className="w-full py-2 px-3 rounded-xl border border-border text-center text-xs font-semibold hover:bg-muted transition flex items-center justify-center gap-2"
+                <button
+                  type="button"
+                  onClick={() => downloadMediaFile(previewFile.publicUrl, previewFile.name, previewFile.id)}
+                  disabled={downloadingId === previewFile.id}
+                  className="w-full py-2.5 px-3 rounded-xl border border-border text-center text-xs font-semibold hover:bg-muted transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  <Download className="w-3.5 h-3.5" /> ডাউনলোড করুন
-                </a>
+                  <Download className={`w-3.5 h-3.5 ${downloadingId === previewFile.id ? "animate-bounce text-primary" : ""}`} />
+                  {downloadingId === previewFile.id ? "ডাউনলোড হচ্ছে…" : "ডাউনলোড করুন"}
+                </button>
 
                 {previewFile.isTrash ? (
                   <button
@@ -1162,6 +1434,141 @@ function AdminMediaPage() {
                 className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition cursor-pointer disabled:opacity-50"
               >
                 {emptyTrashMutation.isPending ? "মুছে ফেলা হচ্ছে..." : "হ্যাঁ, সম্পূর্ণ খালি করুন"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING BULK ACTION BAR */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-2xl bg-card/95 backdrop-blur-md border border-primary/40 shadow-2xl rounded-2xl p-3 sm:px-5 sm:py-3.5 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center shadow-xs">
+              {selectedIds.size}
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-semibold text-foreground">
+                {selectedIds.size}টি ছবি নির্বাচিত করা হয়েছে
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                মোট সাইজ: {formatBytes(selectedFilesList.reduce((acc, f) => acc + f.size, 0))}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {tab === "trash" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleExecuteBulkRestore}
+                  disabled={bulkRestoreMutation.isPending}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{bulkRestoreMutation.isPending ? "রিস্টোর হচ্ছে…" : "সব রিস্টোর করুন"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmBulkDeleteModal(true)}
+                  disabled={bulkDeleteMutation.isPending}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{bulkDeleteMutation.isPending ? "মুছে ফেলা হচ্ছে…" : "স্থায়ীভাবে মুছুন"}</span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmBulkTrashModal(true)}
+                disabled={bulkTrashMutation.isPending}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{bulkTrashMutation.isPending ? "পাঠানো হচ্ছে…" : "ট্র্যাশে পাঠান"}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+              title="সিলেকশন বাতিল করুন"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM BULK TRASH MODAL */}
+      {confirmBulkTrashModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-500/15 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-display text-lg font-bold text-foreground">
+                {selectedIds.size}টি ছবি ট্র্যাশে পাঠাবেন?
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                নির্বাচিত ছবিগুলো ({formatBytes(selectedFilesList.reduce((acc, f) => acc + f.size, 0))}) ট্র্যাশ বিনে চলে যাবে। পরবর্তীতে প্রয়োজন হলে ট্র্যাশ থেকে আবার পুনরুদ্ধার করতে পারবেন।
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmBulkTrashModal(false)}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium hover:bg-muted cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteBulkTrash}
+                disabled={bulkTrashMutation.isPending}
+                className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {bulkTrashMutation.isPending ? "পাঠানো হচ্ছে..." : "হ্যাঁ, ট্র্যাশে পাঠান"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM BULK PERMANENT DELETE MODAL */}
+      {confirmBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-500/15 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-display text-lg font-bold text-foreground">
+                {selectedIds.size}টি ছবি চিরতরে মুছে ফেলবেন?
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                সতর্কতা: নির্বাচিত ছবিগুলো ({formatBytes(selectedFilesList.reduce((acc, f) => acc + f.size, 0))}) ক্লাউড স্টোরেজ থেকে চিরতরে মুছে যাবে। এটি আর কখনো পুনরুদ্ধার করা সম্ভব হবে না।
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmBulkDeleteModal(false)}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium hover:bg-muted cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteBulkDelete}
+                disabled={bulkDeleteMutation.isPending}
+                className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {bulkDeleteMutation.isPending ? "মুছে ফেলা হচ্ছে..." : "হ্যাঁ, চিরতরে মুছে ফেলুন"}
               </button>
             </div>
           </div>

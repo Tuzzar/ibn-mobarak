@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/external";
+import { uploadFileToR2 } from "@/lib/r2-storage";
 import { useAuth } from "@/lib/auth";
 import { landingPagesListOptions, type LandingPage, type LandingFeature, type LandingFaq, type LandingTrustItem, type LandingJourneyStep, type LandingStatItem } from "@/lib/landing-queries";
 import { allProductsSlugOptions } from "@/lib/queries";
@@ -347,16 +348,14 @@ function Editor({
   };
 
   const uploadOne = async (file: File): Promise<string | null> => {
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `landing/reviews/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from("product-images")
-      .upload(path, file, { contentType: file.type });
-    if (upErr) {
-      toast.error(upErr.message);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const filename = `reviews/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      return await uploadFileToR2(file, "landing", filename);
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message}`);
       return null;
     }
-    return supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
   };
 
   const onUploadReviewImages = async (files: FileList) => {
@@ -373,7 +372,7 @@ function Editor({
       }
       if (urls.length) {
         upd("review_images", [...(v.review_images ?? []), ...urls]);
-        toast.success(`${urls.length} image(s) uploaded`);
+        toast.success(`${urls.length} image(s) uploaded to Cloudflare R2`);
       }
     } finally {
       setUploadingReview(false);
@@ -399,17 +398,12 @@ function Editor({
     setUploading(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `landing/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("product-images")
-        .upload(path, file, { contentType: file.type });
-      if (upErr) {
-        toast.error(upErr.message);
-        return;
-      }
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      upd("hero_image_url", data.publicUrl);
-      toast.success("Image uploaded");
+      const filename = `${Date.now()}.${ext}`;
+      const publicUrl = await uploadFileToR2(file, "landing", filename);
+      upd("hero_image_url", publicUrl);
+      toast.success("Image uploaded to Cloudflare R2");
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message}`);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

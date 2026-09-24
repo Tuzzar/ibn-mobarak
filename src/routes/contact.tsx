@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Mail, Phone, MapPin, MessageCircle, Facebook, Clock, ArrowUpRight } from "lucide-react";
 import { useContactInfo } from "@/lib/contact";
+import { siteContentOptions } from "@/lib/queries";
 
 export const Route = createFileRoute("/contact")({
   component: Contact,
@@ -26,6 +28,29 @@ export const Route = createFileRoute("/contact")({
 
 function Contact() {
   const c = useContactInfo();
+  const { data: content } = useQuery(siteContentOptions());
+
+  const heroSubtitle =
+    content?.contact_hero_subtitle ||
+    "যেকোনো আর্ট সামগ্রী, কাস্টম ক্যানভাস ও ক্যালিগ্রাফি অর্ডার কিংবা ডেলিভারি সংক্রান্ত তথ্য — আমরা এক বার্তা দূরে।";
+  const hoursBadge =
+    content?.contact_hours_badge || "সপ্তাহের ৭ দিন · সর্বদা খোলা (Always Open)";
+  const studioDesc =
+    content?.contact_studio_desc ||
+    "অ্যাক্রিলিক কালার, ক্যানভাস বোর্ড, কাঠের ইজেল ও ক্যালিগ্রাফি আর্টওয়ার্ক সরাসরি দেখে সংগ্রহ করতে কিংবা কাস্টম অর্ডারের বিস্তারিত আলোচনা করতে আমাদের স্টুডিওতে স্বাগতম।";
+  const studioImage = content?.contact_studio_image || "/studio.jpg";
+  const bulkTitle = content?.contact_bulk_title || "পাইকারি ও কাস্টম আর্টওয়ার্ক?";
+  const bulkDesc =
+    content?.contact_bulk_desc ||
+    "আর্ট ইনস্টিটিউট, একাডেমি কিংবা গিফট অর্ডারের জন্য ক্যানভাস ফ্রেম, আর্ট কালার সেট কিংবা বড় সাইজের ইসলামিক ক্যালিগ্রাফি ফ্রেম পাইকারি মূল্যে সরবরাহ করা হয়।";
+  const bulkPoint1 =
+    content?.contact_bulk_point_1 || "কাস্টম সাইজ ক্যানভাস ও পাইনউড ফ্রেম তৈরি";
+  const bulkPoint2 =
+    content?.contact_bulk_point_2 || "ক্যালিগ্রাফি ও হ্যান্ডমেইড আর্টওয়ার্ক কিউরেশন";
+  const bulkPoint3 =
+    content?.contact_bulk_point_3 || "দেশজুড়ে নিরাপদ বাবল-র্যাপড ডেলিভারি";
+  const bulkCta =
+    content?.contact_bulk_cta || "WhatsApp এ কাস্টম অর্ডার পাঠান";
 
   const channels = [
     {
@@ -82,12 +107,11 @@ function Contact() {
             <em className="text-primary not-italic">করুন</em>
           </h1>
           <p className="mt-7 text-muted-foreground max-w-xl mx-auto text-[15px] md:text-lg leading-relaxed">
-            যেকোনো আর্ট সামগ্রী, কাস্টম ক্যানভাস ও ক্যালিগ্রাফি অর্ডার কিংবা ডেলিভারি সংক্রান্ত তথ্য —
-            আমরা এক বার্তা দূরে।
+            {heroSubtitle}
           </p>
           <div className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gold/40 bg-[var(--section-a)] text-xs md:text-sm text-foreground/80">
             <Clock className="w-3.5 h-3.5 text-gold" />
-            <span>সপ্তাহের ৭ দিন · সর্বদা খোলা (Always Open)</span>
+            <span>{hoursBadge}</span>
           </div>
         </div>
       </section>
@@ -142,7 +166,7 @@ function Contact() {
                   </div>
                   <div className="mt-3 h-px w-10 bg-gold/50" />
                   <p className="mt-3 text-muted-foreground text-[14px] md:text-[15px] leading-relaxed">
-                    অ্যাক্রিলিক কালার, ক্যানভাস বোর্ড, কাঠের ইজেল ও ক্যালিগ্রাফি আর্টওয়ার্ক সরাসরি দেখে সংগ্রহ করতে কিংবা কাস্টম অর্ডারের বিস্তারিত আলোচনা করতে আমাদের স্টুডিওতে স্বাগতম।
+                    {studioDesc}
                   </p>
                 </div>
               </div>
@@ -150,7 +174,7 @@ function Contact() {
               {/* Real Studio Workspace Preview */}
               <div className="mt-6 rounded-2xl overflow-hidden border border-gold/30 shadow-sm relative group">
                 <img
-                  src="/studio.jpg"
+                  src={studioImage}
                   alt="Ibn Mobarak Art Gallery Studio & Workspace"
                   className="w-full h-56 sm:h-64 object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
@@ -187,24 +211,24 @@ function Contact() {
                 Bulk & Custom Art Orders
               </div>
               <div className="font-display text-2xl md:text-[1.75rem] mt-3 leading-snug text-primary-foreground">
-                পাইকারি ও কাস্টম আর্টওয়ার্ক?
+                {bulkTitle}
               </div>
               <div className="mt-4 h-px w-10 bg-gold/60" />
               <p className="mt-4 text-primary-foreground/85 text-sm leading-relaxed">
-                আর্ট ইনস্টিটিউট, একাডেমি কিংবা গিফট অর্ডারের জন্য ক্যানভাস ফ্রেম, আর্ট কালার সেট কিংবা বড় সাইজের ইসলামিক ক্যালিগ্রাফি ফ্রেম পাইকারি মূল্যে সরবরাহ করা হয়।
+                {bulkDesc}
               </p>
               <ul className="mt-5 space-y-2 text-xs text-primary-foreground/90">
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
-                  <span>কাস্টম সাইজ ক্যানভাস ও পাইনউড ফ্রেম তৈরি</span>
+                  <span>{bulkPoint1}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
-                  <span>ক্যালিগ্রাফি ও হ্যান্ডমেইড আর্টওয়ার্ক কিউরেশন</span>
+                  <span>{bulkPoint2}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
-                  <span>দেশজুড়ে নিরাপদ বাবল-র্যাপড ডেলিভারি</span>
+                  <span>{bulkPoint3}</span>
                 </li>
               </ul>
             </div>
@@ -215,7 +239,7 @@ function Contact() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-full bg-gold text-gold-foreground font-semibold text-sm hover:brightness-105 transition shadow-lg"
               >
-                <span>WhatsApp এ কাস্টম অর্ডার পাঠান</span>
+                <span>{bulkCta}</span>
                 <ArrowUpRight className="w-4 h-4" />
               </a>
             </div>

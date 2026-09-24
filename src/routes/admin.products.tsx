@@ -4,6 +4,7 @@ import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, X, Copy, Star, ArrowUp, ArrowDown, GripVertical, Search, Filter, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
+import { uploadFileToR2, deleteFileFromR2, bulkDeleteFilesFromR2 } from "@/lib/r2-storage";
 import { formatBDT } from "@/lib/cart";
 import { Spinner } from "@/components/site/Spinner";
 import { SIZES, isSizeLabel, parseSizes, sizeSummary, totalSizeStock, type ProductVariant } from "@/lib/sizes";
@@ -218,8 +219,25 @@ function AdminProducts() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this product?")) return;
+    const prod = (products || []).find((p: any) => p.id === id);
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
+
+    // Clean up images from Cloudflare R2
+    if (prod) {
+      const allImgs = Array.from(
+        new Set([
+          ...(Array.isArray(prod.images) ? prod.images : []),
+          ...(prod.image_url ? [prod.image_url] : []),
+        ]),
+      );
+      if (allImgs.length > 0) {
+        bulkDeleteFilesFromR2(allImgs).catch((e) =>
+          console.warn("Notice: Failed to clean up R2 images:", e),
+        );
+      }
+    }
+
     toast.success("Deleted");
     qc.invalidateQueries({ queryKey: ["admin-products"] });
   };
@@ -260,17 +278,17 @@ function AdminProducts() {
     setUploading(true);
     const uploaded: string[] = [];
     for (const file of Array.from(files)) {
-      const ext = file.name.split(".").pop();
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("products").upload(path, file, { upsert: false });
-      if (error) { toast.error(error.message); continue; }
-      const { data } = supabase.storage.from("products").getPublicUrl(path);
-      uploaded.push(data.publicUrl);
+      try {
+        const url = await uploadFileToR2(file, "products");
+        uploaded.push(url);
+      } catch (err: any) {
+        toast.error(`Upload failed: ${err.message}`);
+      }
     }
     if (uploaded.length) {
       const next = [...editing.images, ...uploaded];
       setEditing({ ...editing, images: next, image_url: next[0] });
-      toast.success(`${uploaded.length} image${uploaded.length > 1 ? "s" : ""} uploaded`);
+      toast.success(`${uploaded.length} image${uploaded.length > 1 ? "s" : ""} uploaded to Cloudflare R2`);
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
@@ -295,8 +313,16 @@ function AdminProducts() {
 
   const removeImg = (idx: number) => {
     if (!editing) return;
+    const removedImg = editing.images[idx];
     const next = editing.images.filter((_, i) => i !== idx);
     setEditing({ ...editing, images: next, image_url: next[0] ?? null });
+
+    // Safely delete removed image from Cloudflare R2
+    if (removedImg) {
+      deleteFileFromR2(removedImg).catch((e) =>
+        console.warn("Notice: Failed to delete image from R2:", e),
+      );
+    }
   };
 
   const persistOrder = async (level: Level, ordered: any[]) => {

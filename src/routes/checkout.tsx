@@ -65,6 +65,16 @@ export const BD_DISTRICTS = [
   "শেরপুর (Sherpur)"
 ];
 
+function parseFee(val: string | undefined, fallback: number): number {
+  if (!val) return fallback;
+  const bnToEn: Record<string, string> = {
+    "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4",
+    "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9",
+  };
+  const num = Number(String(val).replace(/[০-৯]/g, (d) => bnToEn[d] || d).replace(/[^0-9.]/g, ""));
+  return isNaN(num) || num <= 0 ? fallback : num;
+}
+
 function Checkout() {
   const { items, subtotal, clear } = useCart();
   const { data: content } = useQuery(siteContentOptions());
@@ -81,7 +91,12 @@ function Checkout() {
     notes: "",
   });
 
-  const deliveryFee = DELIVERY_FEES[zone];
+  const insideFee = parseFee(content?.shipping_dhaka_fee, 80);
+  const outsideFee = parseFee(content?.shipping_outside_fee, 130);
+  const dhakaTimeline = content?.shipping_dhaka_timeline || "২-৩ দিন";
+  const outsideTimeline = content?.shipping_outside_timeline || "৩-৫ দিন";
+
+  const deliveryFee = zone === "inside" ? insideFee : outsideFee;
   const total = subtotal + deliveryFee;
 
   const handleDistrictChange = (selected: string) => {
@@ -340,10 +355,10 @@ function Checkout() {
                   ডেলিভারি এলাকা <span className="text-destructive">*</span>
                 </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {([
-                    { id: "inside", label: "ঢাকা সিটির ভেতরে", fee: 80, time: "২-৩ দিন" },
-                    { id: "outside", label: "ঢাকার বাইরে (সারাদেশ)", fee: 130, time: "৩-৫ দিন" },
-                  ] as const).map((opt) => {
+                  {[
+                    { id: "inside" as const, label: "ঢাকা সিটির ভেতরে", fee: insideFee, time: dhakaTimeline },
+                    { id: "outside" as const, label: "ঢাকার বাইরে (সারাদেশ)", fee: outsideFee, time: outsideTimeline },
+                  ].map((opt) => {
                     const active = zone === opt.id;
                     return (
                       <label

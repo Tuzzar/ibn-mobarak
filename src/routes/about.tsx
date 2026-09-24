@@ -31,28 +31,28 @@ const FALLBACK = {
     "Ibn Mobarak Art Gallery গড়ে উঠেছে একটি বিশেষ উদ্দেশ্য নিয়ে — বাংলাদেশের শিল্পী, ক্যালিগ্রাফার এবং আর্টপ্রেমীদের হাতে সেরা মানের আন্তর্জাতিক আর্ট সামগ্রী ও কাস্টম ক্যালিগ্রাফি পৌঁছে দেওয়া।",
   about_brand_intro_2:
     "অ্যাক্রিলিক কালার, নিখুঁত কটন ক্যানভাস, ফাইন-লাইন ব্রাশ থেকে শুরু করে কাঠের ইজেল — আমাদের প্রতিটি প্রোডাক্ট আপনার সৃজনশীলতাকে দেয় নতুন মাত্রা।",
-  about_founder_photo: "",
+  about_founder_photo: "/studio.jpg",
   about_founder_name: "Ibn Mobarak Art Gallery",
   about_founder_tagline: "আর্টিস্ট · কিউরেটর · আর্ট হাব",
   about_founder_bio:
     "যাত্রাবাড়ী, ঢাকায় অবস্থিত একটি সমৃদ্ধ আর্ট স্টুডিও ও গ্যালারি — যেখানে প্রতিটি আর্টিস্ট মেটেরিয়াল ও ক্যালিগ্রাফি যত্ন নিয়ে যাচাই করে আপনার জন্য প্রস্তুত করা হয়।",
   about_article_heading: "গ্যালারি থেকে একটি চিঠি",
   about_article_body: "",
-  about_pull_quote: "শিল্প ও নান্দনিকতার নির্ভরযোগ্য ঠিকানা।",
+  about_pull_quote: "শিল্প ও নান্দনিকতার নির্ভরযোগ্য ঠিকানা — প্রতিটি রঙের স্পর্শে সৃজনশীলতার বিকাশ।",
   about_pillar_1_title: "অথেনটিক মেটেরিয়াল",
-  about_pillar_1_desc: "বিশ্বমানের অরিজিনাল ব্র্যান্ডের আর্ট কালার ও ব্রাশ — কোয়ালিটিতে নো কম্প্রোমাইজ।",
+  about_pillar_1_desc: "বিশ্বমানের অরিজিনাল ব্র্যান্ডের আর্ট কালার ও ব্রাশ — কোয়ালিটিতে কোনো আপস নেই।",
   about_pillar_2_title: "প্রিমিয়াম ক্যানভাস",
-  about_pillar_2_desc: "১০০% কটন হেভি-ডিউটি ক্যানভাস ও পাইনউড ফ্রেম — দীর্ঘস্থায়ী ও মজবুত।",
+  about_pillar_2_desc: "১০০% কটন হেভি-ডিউটি ক্যানভাস ও পাইনউড ফ্রেম — দীর্ঘস্থায়ী ও নিখুঁত ফিনিশিং।",
   about_pillar_3_title: "ক্যালিগ্রাফি আর্ট",
   about_pillar_3_desc: "অভিজ্ঞ ক্যালিগ্রাফারদের নিখুঁত হাতের কাজ ও ইসলামিক ফ্রেম কালেকশন।",
   about_pillar_4_title: "সুরক্ষিত প্যাকেজিং",
-  about_pillar_4_desc: "মাল্টি-লেয়ার বাবল র্যাপ প্রোটেকশনে প্রতিটি ক্যানভাস পৌঁছায় অক্ষত অবস্থায়।",
+  about_pillar_4_desc: "মাল্টি-লেয়ার বাবল র্যাপ প্রোটেকশনে প্রতিটি ক্যানভাস ও আর্ট সামগ্রী পৌঁছায় অক্ষত অবস্থায়।",
   about_stat_1_value: "৪৩K+",
   about_stat_1_label: "ফেসবুক ফলোয়ার্স",
   about_stat_2_value: "১০০%",
   about_stat_2_label: "পজিটিভ রেকমেন্ডেশন",
   about_stat_3_value: "৬৪",
-  about_stat_3_label: "জেলায় ডেলিভারি",
+  about_stat_3_label: "জেলায় হোম ডেলিভারি",
   about_promise_1_title: "অরিজিনাল আর্ট সামগ্রী",
   about_promise_1_desc: "আন্তর্জাতিক মানের কালার, নিখুঁত ক্যানভাস ও ব্রাশ — প্রতিটি পণ্যে শতভাগ বিশুদ্ধতা।",
   about_promise_2_title: "শিল্পী ও ক্যালিগ্রাফারদের পছন্দ",
@@ -236,6 +236,11 @@ function About() {
                   <p className="mt-4 text-muted-foreground leading-relaxed text-[15px] md:text-[16px]">
                     {ch.body}
                   </p>
+                  {ch.image && (
+                    <div className={`mt-4 max-w-xs rounded-2xl overflow-hidden border border-gold/30 shadow-md ${i % 2 !== 0 ? "md:ml-auto" : ""}`}>
+                      <img src={ch.image} alt={ch.title} className="w-full h-44 object-cover" />
+                    </div>
+                  )}
                 </div>
               </li>
             ))}

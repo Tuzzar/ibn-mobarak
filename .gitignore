@@ -31,6 +31,8 @@ dist-ssr
 
 # Backups
 backup_data/
+old_site_photos_backup/
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

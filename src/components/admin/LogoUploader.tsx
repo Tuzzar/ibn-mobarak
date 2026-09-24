@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload, RotateCcw, X, Crop as CropIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
+import { uploadFileToR2 } from "@/lib/r2-storage";
 import { DEFAULT_LOGO_URL } from "@/lib/brand";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -142,23 +143,17 @@ export function LogoUploader({
         }
       }
       const ext = transparent ? "png" : "webp";
-      const path = `site-content/logo-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("product-images")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      onChange(data.publicUrl);
+      const filename = `logo-${Date.now()}.${ext}`;
+      const publicUrl = await uploadFileToR2(file, "site-content", filename);
+
+      onChange(publicUrl);
       onScaleChange("1");
       setSrc(null);
 
       // Persist immediately so the logo goes live even if "Save" is never pressed.
       const { error: saveError } = await supabase
         .from("site_content")
-        .upsert({ key: "brand_logo_url", value: data.publicUrl }, { onConflict: "key" });
+        .upsert({ key: "brand_logo_url", value: publicUrl }, { onConflict: "key" });
       if (saveError) {
         toast.error(`Uploaded, but not saved: ${saveError.message}. Press Save.`);
         return;

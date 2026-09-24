@@ -20,8 +20,12 @@ import {
   MessageCircle,
   ShoppingBag,
   CheckCircle2,
+  Scale,
+  Building2,
+  MapPin,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
+import { uploadFileToR2 } from "@/lib/r2-storage";
 import { siteContentOptions, productsCategoriesOptions, allProductsSlugOptions } from "@/lib/queries";
 import { Spinner } from "@/components/site/Spinner";
 import { useAuth } from "@/lib/auth";
@@ -218,6 +222,25 @@ const FIELDS = [
   "checkout_perk_1_desc",
   "checkout_perk_2_title",
   "checkout_perk_2_desc",
+  // Contact Page Extras
+  "contact_phone_secondary",
+  "contact_hero_subtitle",
+  "contact_hours_badge",
+  "contact_studio_desc",
+  "contact_studio_image",
+  "contact_bulk_title",
+  "contact_bulk_desc",
+  "contact_bulk_point_1",
+  "contact_bulk_point_2",
+  "contact_bulk_point_3",
+  "contact_bulk_cta",
+  // Shipping Policy & Rates
+  "shipping_dhaka_fee",
+  "shipping_dhaka_timeline",
+  "shipping_outside_fee",
+  "shipping_outside_timeline",
+  "shipping_extra_kg_fee",
+  "shipping_policy_intro",
 ] as const;
 type FieldKey = (typeof FIELDS)[number];
 
@@ -761,6 +784,306 @@ function ShopAndCheckoutPreviewCard({
   );
 }
 
+function ContactPreviewCard({
+  phone,
+  phoneSecondary,
+  email,
+  address,
+  hoursBadge,
+  studioDesc,
+  studioImage,
+  bulkTitle,
+  bulkDesc,
+  bulkPoint1,
+  bulkPoint2,
+  bulkPoint3,
+  bulkCta,
+}: {
+  phone?: string;
+  phoneSecondary?: string;
+  email?: string;
+  address?: string;
+  hoursBadge?: string;
+  studioDesc?: string;
+  studioImage?: string;
+  bulkTitle?: string;
+  bulkDesc?: string;
+  bulkPoint1?: string;
+  bulkPoint2?: string;
+  bulkPoint3?: string;
+  bulkCta?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            যোগাযোগ ও স্টুডিও প্রিভিউ (Live Contact & Studio Preview)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground">কন্টাক্ট পেজ ও বাল্ক অর্ডার কার্ড</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Studio Card Preview */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm flex flex-col">
+          <div className="relative aspect-video w-full bg-muted overflow-hidden">
+            {studioImage ? (
+              <img
+                src={studioImage}
+                alt="Studio Preview"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-1.5 p-4 bg-muted/60">
+                <Building2 className="w-6 h-6 opacity-40" />
+                <span className="text-[11px]">কোনো ছবি নেই (ডিফল্ট আর্টওয়ার্ক ব্যবহৃত হবে)</span>
+              </div>
+            )}
+            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-background/90 backdrop-blur-sm border border-border/80 text-[10px] font-semibold text-foreground">
+              <Clock className="w-3 h-3 text-amber-500" />
+              {hoursBadge || "প্রতিদিন সকাল ১০টা - রাত ১০টা"}
+            </span>
+          </div>
+          <div className="p-3.5 space-y-1.5 flex-1">
+            <h4 className="text-sm font-bold text-foreground">ফিজিক্যাল স্টুডিও ও শোরুম</h4>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {studioDesc || "সরাসরি দেখে অরিজিনাল ক্যানভাস পেইন্টিং, ব্রাশ ও আর্ট সাপ্লাই সংগ্রহ করতে আমাদের স্টুডিওতে আপনাকে স্বাগতম।"}
+            </p>
+            <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-1">
+              <div className="flex items-center gap-1.5 truncate">
+                <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">{address || "Dhaka, Bangladesh"}</span>
+              </div>
+              <div className="flex items-center gap-1.5 truncate">
+                <PhoneIcon className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">{phone || "+880 1930-277557"}</span>
+                {phoneSecondary && (
+                  <span className="text-muted-foreground/80">/ {phoneSecondary}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bulk Order Card Preview */}
+        <div className="rounded-xl border border-amber-500/30 bg-primary/5 p-4 flex flex-col justify-between shadow-sm">
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-semibold">
+              <Award className="w-3 h-3" />
+              কর্পোরেট ও বাল্ক অর্ডার
+            </span>
+            <h4 className="text-sm font-bold text-foreground">
+              {bulkTitle || "বাল্ক বা কাস্টম সাইজ ফ্রেম প্রয়োজন?"}
+            </h4>
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+              {bulkDesc || "স্কুল, কলেজ, আর্ট একাডেমি বা কর্পোরেট গিফটিংয়ের জন্য বিশেষ হোলসেল রেটে অর্ডার করতে সরাসরি আমাদের সাথে আলোচনা করুন।"}
+            </p>
+            <ul className="space-y-1 text-[11px] text-foreground/80 pt-1">
+              <li className="flex items-center gap-1.5 truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">{bulkPoint1 || "কাস্টম সাইজ ক্যানভাস ও স্ট্রেচার বার তৈরি"}</span>
+              </li>
+              <li className="flex items-center gap-1.5 truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">{bulkPoint2 || "হোলসেল ও একাডেমি স্পেশাল ডিসকাউন্ট"}</span>
+              </li>
+              <li className="flex items-center gap-1.5 truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">{bulkPoint3 || "নিরাপদ কাঠের বক্সে জেলা পর্যায়ে ডেলিভারি"}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between">
+            <span className="text-[11px] text-muted-foreground">CTA বাটন:</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-semibold shadow-sm">
+              <MessageCircle className="w-3 h-3" />
+              {bulkCta || "হোয়াটসঅ্যাপে আলোচনা করুন"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShippingRatesPreviewCard({
+  dhakaFee,
+  dhakaTimeline,
+  outsideFee,
+  outsideTimeline,
+  extraKgFee,
+  policyIntro,
+}: {
+  dhakaFee?: string;
+  dhakaTimeline?: string;
+  outsideFee?: string;
+  outsideTimeline?: string;
+  extraKgFee?: string;
+  policyIntro?: string;
+}) {
+  const dFee = dhakaFee || "80";
+  const oFee = outsideFee || "130";
+  const extra = extraKgFee || "20";
+  const dTime = dhakaTimeline || "২ থেকে ৩ কর্মদিবস";
+  const oTime = outsideTimeline || "৩ থেকে ৫ কর্মদিবস";
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            ডেলিভারি চার্জ ও পলিসি প্রিভিউ (Live Shipping Rates Preview)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground">শিপিং পলিসি ও চেকআউট রেট</span>
+      </div>
+
+      {policyIntro && (
+        <p className="text-xs text-muted-foreground bg-card p-2.5 rounded-lg border border-border/60 line-clamp-2">
+          {policyIntro}
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Inside Dhaka */}
+        <div className="rounded-xl border-2 border-amber-500/40 bg-card p-3.5 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-500">ঢাকা সিটি</span>
+            <span className="text-lg font-extrabold text-primary">৳{dFee}</span>
+          </div>
+          <p className="text-xs font-semibold text-foreground">ঢাকার ভেতরে ডেলিভারি</p>
+          <div className="text-[11px] text-muted-foreground space-y-1 border-t border-border/60 pt-2">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+              <span>সময়সীমা: {dTime}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Scale className="w-3 h-3 text-amber-500 shrink-0" />
+              <span>অতিরিক্ত কেজি চার্জ: +৳{extra}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Outside Dhaka */}
+        <div className="rounded-xl border-2 border-border/80 bg-card p-3.5 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-primary">সারাদেশ (৬৪ জেলা)</span>
+            <span className="text-lg font-extrabold text-primary">৳{oFee}</span>
+          </div>
+          <p className="text-xs font-semibold text-foreground">ঢাকার বাইরে ডেলিভারি</p>
+          <div className="text-[11px] text-muted-foreground space-y-1 border-t border-border/60 pt-2">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+              <span>সময়সীমা: {oTime}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Scale className="w-3 h-3 text-amber-500 shrink-0" />
+              <span>অতিরিক্ত কেজি চার্জ: +৳{extra}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AboutPreviewCard({
+  founderName,
+  tagline,
+  bio,
+  photo,
+  pullQuote,
+  stat1Val,
+  stat1Lbl,
+  stat2Val,
+  stat2Lbl,
+  stat3Val,
+  stat3Lbl,
+}: {
+  founderName?: string;
+  tagline?: string;
+  bio?: string;
+  photo?: string;
+  pullQuote?: string;
+  stat1Val?: string;
+  stat1Lbl?: string;
+  stat2Val?: string;
+  stat2Lbl?: string;
+  stat3Val?: string;
+  stat3Lbl?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+            আমাদের গল্প প্রিভিউ (Live About Story Preview)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground">About পেজ পরিচিতি কার্ড</span>
+      </div>
+
+      <div className="rounded-xl border border-border/80 bg-card p-4 space-y-3 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-4 items-start">
+          <div className="w-24 h-24 rounded-xl overflow-hidden bg-muted border border-border shrink-0">
+            {photo ? (
+              <img src={photo} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground text-center">
+                ছবি নেই
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <h4 className="font-display text-base font-bold text-foreground">
+              {founderName || "Ibn Mobarak Art Gallery"}
+            </h4>
+            <p className="text-xs text-primary font-medium">{tagline || "আর্টিস্ট · কিউরেটর · আর্ট হাব"}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+              {bio || "যাত্রাবাড়ী, ঢাকায় অবস্থিত একটি সমৃদ্ধ আর্ট স্টুডিও ও গ্যালারি..."}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-center">
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="font-display text-base font-bold text-primary">{stat1Val || "৪৩K+"}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{stat1Lbl || "ফেসবুক ফলোয়ার্স"}</div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="font-display text-base font-bold text-primary">{stat2Val || "১০০%"}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{stat2Lbl || "পজিটিভ রেকমেন্ডেশন"}</div>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30">
+            <div className="font-display text-base font-bold text-primary">{stat3Val || "৬৪"}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{stat3Lbl || "জেলায় ডেলিভারি"}</div>
+          </div>
+        </div>
+
+        {pullQuote && (
+          <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs italic text-center text-foreground/90">
+            “{pullQuote}”
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminSiteContent() {
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
@@ -783,11 +1106,13 @@ function AdminSiteContent() {
   const [uploadingSlide, setUploadingSlide] = useState<Record<number, boolean>>({});
   const [uploadingTestimonial, setUploadingTestimonial] = useState<Record<number, boolean>>({});
   const [uploadingCta, setUploadingCta] = useState(false);
+  const [uploadingStudio, setUploadingStudio] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const founderFileRef = useRef<HTMLInputElement>(null);
   const slideFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const testimonialFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const ctaFileRef = useRef<HTMLInputElement>(null);
+  const studioFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!content) return;
@@ -828,17 +1153,12 @@ function AdminSiteContent() {
         );
       }
       const ext = compressed.name.split(".").pop() || "webp";
-      const path = `site-content/${prefix}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("product-images")
-        .upload(path, compressed, { upsert: false, contentType: compressed.type });
-      if (upErr) {
-        toast.error(upErr.message);
-        return;
-      }
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      setValues((v) => ({ ...v, [field]: data.publicUrl }));
-      toast.success("Image uploaded");
+      const filename = `${prefix}-${Date.now()}.${ext}`;
+      const publicUrl = await uploadFileToR2(compressed, "site-content", filename);
+      setValues((v) => ({ ...v, [field]: publicUrl }));
+      toast.success("Image uploaded to Cloudflare R2");
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message}`);
     } finally {
       setBusy(false);
       if (ref.current) ref.current.value = "";
@@ -851,6 +1171,8 @@ function AdminSiteContent() {
     uploadTo(file, "about_founder_photo", "founder", setUploadingFounder, founderFileRef);
   const onUploadCta = (file: File) =>
     uploadTo(file, "cta_image", "cta", setUploadingCta, ctaFileRef);
+  const onUploadStudio = (file: File) =>
+    uploadTo(file, "contact_studio_image", "studio", setUploadingStudio, studioFileRef);
   const onUploadSlide = (file: File, n: 2 | 3 | 4) => {
     const setBusy = (b: boolean) =>
       setUploadingSlide((s) => ({ ...s, [n]: b }));
@@ -1154,7 +1476,7 @@ function AdminSiteContent() {
                     onChange={(e) =>
                       setValues((v) => ({ ...v, hero_featured_title: e.target.value }))
                     }
-                    placeholder="King of Mangoes"
+                    placeholder="অ্যাক্রিলিক কালার সেট"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                 </div>
@@ -1169,7 +1491,7 @@ function AdminSiteContent() {
                     onChange={(e) =>
                       setValues((v) => ({ ...v, hero_featured_description: e.target.value }))
                     }
-                    placeholder="Premium Himsagar, in season now"
+                    placeholder="প্রিমিয়াম পিগমেন্টেড আর্ট কালার কালেকশন"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                 </div>
@@ -1811,8 +2133,21 @@ function AdminSiteContent() {
           </div>
         </SectionRow>
 
-        <SectionRow id="about" title="Our Story Page" subtitle="Founder, brand intro, article, pillars, stats">
-        <div className="space-y-5">
+        <SectionRow id="about" title="Our Story Page" subtitle="আমাদের গল্প, ব্র্যান্ড পরিচিতি, ক্যালিগ্রাফি স্টুডিও ও অঙ্গীকার">
+        <div className="space-y-6">
+          <AboutPreviewCard
+            founderName={values.about_founder_name}
+            tagline={values.about_founder_tagline}
+            bio={values.about_founder_bio}
+            photo={values.about_founder_photo}
+            pullQuote={values.about_pull_quote}
+            stat1Val={values.about_stat_1_value}
+            stat1Lbl={values.about_stat_1_label}
+            stat2Val={values.about_stat_2_value}
+            stat2Lbl={values.about_stat_2_label}
+            stat3Val={values.about_stat_3_value}
+            stat3Lbl={values.about_stat_3_label}
+          />
           {/* Founder photo & identity */}
           <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
             <div className="flex items-center gap-3">
@@ -2009,138 +2344,435 @@ function AdminSiteContent() {
         </div>
         </SectionRow>
 
-        <SectionRow id="contact" title="Contact Info" subtitle="Phone, WhatsApp, Messenger, social URLs">
-          <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                <PhoneIcon className="w-4 h-4" />
+        <SectionRow id="contact" title="Contact Info & Studio" subtitle="হটলাইন, স্টুডিও শো-রুম, বাল্ক অর্ডার ও সোশ্যাল লিংক">
+          <div className="space-y-6">
+            <ContactPreviewCard
+              phone={values.contact_phone}
+              phoneSecondary={values.contact_phone_secondary}
+              email={values.contact_email}
+              address={values.contact_address_full || values.contact_address}
+              hoursBadge={values.contact_hours_badge}
+              studioDesc={values.contact_studio_desc}
+              studioImage={values.contact_studio_image}
+              bulkTitle={values.contact_bulk_title}
+              bulkDesc={values.contact_bulk_desc}
+              bulkPoint1={values.contact_bulk_point_1}
+              bulkPoint2={values.contact_bulk_point_2}
+              bulkPoint3={values.contact_bulk_point_3}
+              bulkCta={values.contact_bulk_cta}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <PhoneIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg">মৌলিক যোগাযোগ মাধ্যম</h2>
+                  <p className="text-xs text-muted-foreground">
+                    ফুটার, কন্টাক্ট পেজ ও হোয়াটসঅ্যাপ বাটনে তাৎক্ষণিকভাবে আপডেট হবে।
+                  </p>
+                </div>
               </div>
+
               <div>
-                <h2 className="font-display text-lg">Contact Info</h2>
-                <p className="text-xs text-muted-foreground">
-                  Shown in the footer, contact page, and WhatsApp button. Updates everywhere instantly.
-                </p>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ইমেইল (Email)</label>
+                <input
+                  type="email"
+                  value={values.contact_email}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_email: e.target.value }))}
+                  placeholder="ibnmobarakartgallery@gmail.com"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Email</label>
-              <input
-                type="email"
-                value={values.contact_email}
-                onChange={(e) => setValues((v) => ({ ...v, contact_email: e.target.value }))}
-                placeholder="almiftahshop21@gmail.com"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">হটলাইন ১ (Primary Phone)</label>
+                  <input
+                    type="text"
+                    value={values.contact_phone}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_phone: e.target.value }))}
+                    placeholder="+880 1930-277557"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    কল লিংকের জন্য ব্যবহৃত হবে — কান্ট্রি কোড সহ রাখুন।
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">হটলাইন ২ (Secondary Phone - ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    value={values.contact_phone_secondary}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_phone_secondary: e.target.value }))}
+                    placeholder="+880 1712-345678"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    কন্টাক্ট পেজে ব্যাকআপ ফোন নম্বর হিসেবে প্রদর্শিত হবে।
+                  </p>
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Phone (display)</label>
-              <input
-                type="text"
-                value={values.contact_phone}
-                onChange={(e) => setValues((v) => ({ ...v, contact_phone: e.target.value }))}
-                placeholder="+880 1930-277557"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Used for the call-link too — keep the country code.
-              </p>
-            </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp নম্বর (Digits only)</label>
+                  <input
+                    type="text"
+                    value={values.contact_whatsapp}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp: e.target.value }))}
+                    placeholder="8801930277557"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    কান্ট্রি কোড সহ শুধুমাত্র সংখ্যা। কোনো +, স্পেস বা হাইফেন নয়।
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp ডিসপ্লে লেবেল</label>
+                  <input
+                    type="text"
+                    value={values.contact_whatsapp_display}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp_display: e.target.value }))}
+                    placeholder="+880 1930-277557"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
 
-            <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp number</label>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp প্রি-ফিল্ড মেসেজ</label>
+                <textarea
+                  rows={2}
+                  value={values.contact_whatsapp_message}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp_message: e.target.value }))}
+                  placeholder="Hello! I'd like to know more about your art collection."
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ঠিকানা (সংক্ষিপ্ত — ফুটারের জন্য)</label>
+                  <input
+                    type="text"
+                    value={values.contact_address}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_address: e.target.value }))}
+                    placeholder="Dhaka, Bangladesh"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ঠিকানা (বিস্তারিত — কন্টাক্ট পেজ)</label>
+                  <input
+                    type="text"
+                    value={values.contact_address_full}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_address_full: e.target.value }))}
+                    placeholder="South Jatrabari, Dhaka"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Page Subtitle */}
+              <div className="pt-3 border-t border-border/60">
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                  কন্টাক্ট পেজ হেডার সাবটাইটেল
+                </label>
                 <input
                   type="text"
-                  value={values.contact_whatsapp}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp: e.target.value }))}
-                  placeholder="8801930277557"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Digits only, with country code. No +, spaces, or dashes.
-                </p>
-              </div>
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp display label</label>
-                <input
-                  type="text"
-                  value={values.contact_whatsapp_display}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp_display: e.target.value }))}
-                  placeholder="+880 1930-277557"
+                  value={values.contact_hero_subtitle}
+                  onChange={(e) => setValues((v) => ({ ...v, contact_hero_subtitle: e.target.value }))}
+                  placeholder="আর্ট সামগ্রী, ক্যানভাস বা কাস্টম ফ্রেম সম্পর্কিত যেকোনো প্রয়োজনে যোগাযোগ করুন"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp pre-filled message</label>
-              <textarea
-                rows={2}
-                value={values.contact_whatsapp_message}
-                onChange={(e) => setValues((v) => ({ ...v, contact_whatsapp_message: e.target.value }))}
-                placeholder="Hello! I'd like to know more about your premium fruits."
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
+              {/* Physical Studio & Shop Customization */}
+              <div className="pt-4 border-t border-border/60 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-amber-500" />
+                  <h3 className="font-display text-sm font-semibold">ফিজিক্যাল স্টুডিও ও শপ কার্ড</h3>
+                </div>
 
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Address (short — footer)</label>
-                <input
-                  type="text"
-                  value={values.contact_address}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_address: e.target.value }))}
-                  placeholder="Dhaka, Bangladesh"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Address (full — contact page)</label>
-                <input
-                  type="text"
-                  value={values.contact_address_full}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_address_full: e.target.value }))}
-                  placeholder="South Jatrabari, Dhaka"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-              </div>
-            </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      খোলা থাকার সময়সূচি ব্যাজ
+                    </label>
+                    <input
+                      type="text"
+                      value={values.contact_hours_badge}
+                      onChange={(e) => setValues((v) => ({ ...v, contact_hours_badge: e.target.value }))}
+                      placeholder="প্রতিদিন সকাল ১০টা - রাত ১০টা"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                      স্টুডিও কার্ডের ছবি আপলোড
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={studioFileRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={(e) => e.target.files?.[0] && onUploadStudio(e.target.files[0])}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => studioFileRef.current?.click()}
+                        disabled={uploadingStudio}
+                        className="inline-flex items-center gap-2 border border-border px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-muted disabled:opacity-60 shrink-0"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        {uploadingStudio ? "আপলোড হচ্ছে…" : "ছবি নির্বাচন"}
+                      </button>
+                      <input
+                        type="text"
+                        value={values.contact_studio_image}
+                        onChange={(e) => setValues((v) => ({ ...v, contact_studio_image: e.target.value }))}
+                        placeholder="বা ছবির URL দিন..."
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-            <div className="grid sm:grid-cols-2 gap-3 pt-3 border-t border-border/60">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                    স্টুডিওর বিবরণ বার্তা
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={values.contact_studio_desc}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_studio_desc: e.target.value }))}
+                    placeholder="সরাসরি দেখে অরিজিনাল ক্যানভাস পেইন্টিং, ব্রাশ ও আর্ট সাপ্লাই সংগ্রহ করতে আমাদের স্টুডিওতে আপনাকে স্বাগতম।"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Bulk & Custom Orders Section */}
+              <div className="pt-4 border-t border-border/60 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <h3 className="font-display text-sm font-semibold">বাল্ক ও কাস্টম অর্ডার ব্যানার</h3>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ব্যানার শিরোনাম</label>
+                    <input
+                      type="text"
+                      value={values.contact_bulk_title}
+                      onChange={(e) => setValues((v) => ({ ...v, contact_bulk_title: e.target.value }))}
+                      placeholder="বাল্ক বা কাস্টম সাইজ ফ্রেম প্রয়োজন?"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">WhatsApp CTA বাটন লেখা</label>
+                    <input
+                      type="text"
+                      value={values.contact_bulk_cta}
+                      onChange={(e) => setValues((v) => ({ ...v, contact_bulk_cta: e.target.value }))}
+                      placeholder="হোয়াটসঅ্যাপে আলোচনা করুন"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ব্যানারের মূল বিবরণ</label>
+                  <textarea
+                    rows={2}
+                    value={values.contact_bulk_desc}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_bulk_desc: e.target.value }))}
+                    placeholder="স্কুল, কলেজ, আর্ট একাডেমি বা কর্পোরেট গিফটিংয়ের জন্য বিশেষ হোলসেল রেটে অর্ডার করতে সরাসরি আমাদের সাথে আলোচনা করুন।"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground">৩টি হাইলাইট বুলেট পয়েন্ট</label>
+                  <input
+                    type="text"
+                    value={values.contact_bulk_point_1}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_bulk_point_1: e.target.value }))}
+                    placeholder="বুলেট ১: কাস্টম সাইজ ক্যানভাস ও স্ট্রেচার বার তৈরি"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={values.contact_bulk_point_2}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_bulk_point_2: e.target.value }))}
+                    placeholder="বুলেট ২: হোলসেল ও একাডেমি স্পেশাল ডিসকাউন্ট"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={values.contact_bulk_point_3}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_bulk_point_3: e.target.value }))}
+                    placeholder="বুলেট ৩: নিরাপদ কাঠের বক্সে জেলা পর্যায়ে ডেলিভারি"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Social URLs */}
+              <div className="grid sm:grid-cols-2 gap-3 pt-3 border-t border-border/60">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Facebook URL</label>
+                  <input
+                    type="url"
+                    value={values.contact_facebook_url}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_facebook_url: e.target.value }))}
+                    placeholder="https://facebook.com/yourpage"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Instagram URL</label>
+                  <input
+                    type="url"
+                    value={values.contact_instagram_url}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_instagram_url: e.target.value }))}
+                    placeholder="https://instagram.com/yourpage"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Messenger URL</label>
+                  <input
+                    type="url"
+                    value={values.contact_messenger_url}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_messenger_url: e.target.value }))}
+                    placeholder="https://m.me/yourpage"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        </SectionRow>
+
+        <SectionRow id="shipping_policy" title="Shipping Policy & Rates" subtitle="ঢাকার ভেতরে ও বাইরের ডেলিভারি চার্জ, সময়সীমা এবং পার্সেল ওজনের রেট">
+          <div className="space-y-6">
+            <ShippingRatesPreviewCard
+              dhakaFee={values.shipping_dhaka_fee}
+              dhakaTimeline={values.shipping_dhaka_timeline}
+              outsideFee={values.shipping_outside_fee}
+              outsideTimeline={values.shipping_outside_timeline}
+              extraKgFee={values.shipping_extra_kg_fee}
+              policyIntro={values.shipping_policy_intro}
+            />
+
+            <section className="bg-card border border-border rounded-2xl p-5 md:p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg">ডেলিভারি চার্জ ও সময়সীমা সেটিংস</h2>
+                  <p className="text-xs text-muted-foreground">
+                    এখানে দেওয়া রেট শিপিং পলিসি পেজ এবং ইউজার সাইটের চেকআউট ক্যালকুলেশনে স্বয়ংক্রিয়ভাবে কার্যকর হবে।
+                  </p>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Facebook URL</label>
-                <input
-                  type="url"
-                  value={values.contact_facebook_url}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_facebook_url: e.target.value }))}
-                  placeholder="https://facebook.com/yourpage"
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                  শিপিং পলিসি পেজ ভূমিকা (Policy Intro Text)
+                </label>
+                <textarea
+                  rows={2}
+                  value={values.shipping_policy_intro}
+                  onChange={(e) => setValues((v) => ({ ...v, shipping_policy_intro: e.target.value }))}
+                  placeholder="Ibn Mobarak Art Gallery-এর প্রতিটি আর্ট পণ্য ও ক্যানভাস অত্যন্ত সুরক্ষামূলক প্যাকেজিং সহ আপনার দ্বারে পৌঁছে দেওয়া হয়।"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Instagram URL</label>
-                <input
-                  type="url"
-                  value={values.contact_instagram_url}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_instagram_url: e.target.value }))}
-                  placeholder="https://instagram.com/yourpage"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+
+              <div className="grid sm:grid-cols-2 gap-4 pt-3 border-t border-border/60">
+                <div className="p-4 rounded-xl bg-muted/30 border border-border/70 space-y-3">
+                  <span className="text-xs font-bold text-amber-500 uppercase tracking-wider block">ঢাকা সিটির ভেতরে</span>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      ডেলিভারি চার্জ (টাকায় / সংখ্যা)
+                    </label>
+                    <input
+                      type="text"
+                      value={values.shipping_dhaka_fee}
+                      onChange={(e) => setValues((v) => ({ ...v, shipping_dhaka_fee: e.target.value }))}
+                      placeholder="80"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      ডেলিভারি সময়সীমা
+                    </label>
+                    <input
+                      type="text"
+                      value={values.shipping_dhaka_timeline}
+                      onChange={(e) => setValues((v) => ({ ...v, shipping_dhaka_timeline: e.target.value }))}
+                      placeholder="২ থেকে ৩ কর্মদিবস"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-muted/30 border border-border/70 space-y-3">
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider block">ঢাকার বাইরে (সারাদেশ)</span>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      ডেলিভারি চার্জ (টাকায় / সংখ্যা)
+                    </label>
+                    <input
+                      type="text"
+                      value={values.shipping_outside_fee}
+                      onChange={(e) => setValues((v) => ({ ...v, shipping_outside_fee: e.target.value }))}
+                      placeholder="130"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      ডেলিভারি সময়সীমা
+                    </label>
+                    <input
+                      type="text"
+                      value={values.shipping_outside_timeline}
+                      onChange={(e) => setValues((v) => ({ ...v, shipping_outside_timeline: e.target.value }))}
+                      placeholder="৩ থেকে ৫ কর্মদিবস"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Messenger URL</label>
-                <input
-                  type="url"
-                  value={values.contact_messenger_url}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_messenger_url: e.target.value }))}
-                  placeholder="https://m.me/yourpage"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+
+              <div className="pt-3 border-t border-border/60">
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">
+                  ১ কেজির বেশি ওজনে প্রতি কেজির অতিরিক্ত চার্জ (টাকায়)
+                </label>
+                <div className="sm:w-1/2">
+                  <input
+                    type="text"
+                    value={values.shipping_extra_kg_fee}
+                    onChange={(e) => setValues((v) => ({ ...v, shipping_extra_kg_fee: e.target.value }))}
+                    placeholder="20"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    ক্যানভাস ও ফ্রেমের বাড়তি ওজনের ক্ষেত্রে কুরিয়ারের স্ট্যান্ডার্ড সারচার্জ।
+                  </p>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
         </SectionRow>
 
         <SectionRow id="footer" title="Footer" subtitle="ফুটার ব্র্যান্ড বার্তা, কাজের সময়সূচি ও কপিরাইট টেক্সট">
@@ -2681,7 +3313,7 @@ function AdminSiteContent() {
         <div className="sticky bottom-0 mt-6 -mx-5 md:mx-0 px-5 md:px-0 py-4 bg-background/95 backdrop-blur border-t border-border md:border-0 md:bg-transparent flex justify-end">
           <button
             onClick={save}
-            disabled={saving || uploading || uploadingFounder}
+            disabled={saving || uploading || uploadingFounder || uploadingStudio}
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full text-sm font-medium hover:bg-primary/90 transition disabled:opacity-50"
           >
             <Save className="w-4 h-4" />

@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRight, Truck, Package, Clock, ShieldCheck, CheckCircle2, Phone, MessageCircle, AlertCircle, Scale } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { siteContentOptions } from "@/lib/queries";
 import { useContactInfo } from "@/lib/contact";
 
 export const Route = createFileRoute("/shipping-policy")({
@@ -23,8 +25,40 @@ export const Route = createFileRoute("/shipping-policy")({
   }),
 });
 
+function toBanglaDigits(val: string | number) {
+  const str = String(val).trim();
+  const enToBn: Record<string, string> = {
+    "0": "০", "1": "১", "2": "২", "3": "৩", "4": "৪",
+    "5": "৫", "6": "৬", "7": "৭", "8": "৮", "9": "৯",
+  };
+  return str.replace(/[0-9]/g, (d) => enToBn[d] || d);
+}
+
+function parseFee(val: string | undefined, fallback: number): number {
+  if (!val) return fallback;
+  const bnToEn: Record<string, string> = {
+    "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4",
+    "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9",
+  };
+  const num = Number(String(val).replace(/[০-৯]/g, (d) => bnToEn[d] || d).replace(/[^0-9.]/g, ""));
+  return isNaN(num) || num <= 0 ? fallback : num;
+}
+
 function ShippingPolicyPage() {
+  const { data: content } = useQuery(siteContentOptions());
   const { phone, phoneHref, whatsappHref } = useContactInfo();
+
+  const dhakaFeeNum = parseFee(content?.shipping_dhaka_fee, 80);
+  const outsideFeeNum = parseFee(content?.shipping_outside_fee, 130);
+  const extraKgFeeNum = parseFee(content?.shipping_extra_kg_fee, 20);
+
+  const dhakaFee = toBanglaDigits(dhakaFeeNum);
+  const outsideFee = toBanglaDigits(outsideFeeNum);
+  const extraKgFee = toBanglaDigits(extraKgFeeNum);
+
+  const dhakaTimeline = content?.shipping_dhaka_timeline || "২ থেকে ৩ কর্মদিবস";
+  const outsideTimeline = content?.shipping_outside_timeline || "৩ থেকে ৫ কর্মদিবস";
+  const policyIntro = content?.shipping_policy_intro || "Ibn Mobarak Art Gallery-এর প্রতিটি আর্ট পণ্য ও ক্যানভাস অত্যন্ত সুরক্ষামূলক প্যাকেজিং সহ আপনার দ্বারে পৌঁছে দেওয়া হয়।";
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-20">
@@ -51,7 +85,7 @@ function ShippingPolicyPage() {
             ডেলিভারি চার্জ ও শিপিং নীতিমালা
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Ibn Mobarak Art Gallery-এর প্রতিটি আর্ট পণ্য ও ক্যানভাস অত্যন্ত সুরক্ষামূলক প্যাকেজিং সহ আপনার দ্বারে পৌঁছে দেওয়া হয়।
+            {policyIntro}
           </p>
         </div>
       </section>
@@ -70,7 +104,7 @@ function ShippingPolicyPage() {
                 </h3>
               </div>
               <div className="text-right">
-                <span className="text-3xl sm:text-4xl font-extrabold text-primary">৳৮০</span>
+                <span className="text-3xl sm:text-4xl font-extrabold text-primary">৳{dhakaFee}</span>
                 <span className="block text-[11px] text-muted-foreground">১ কেজি পর্যন্ত ফিক্সড</span>
               </div>
             </div>
@@ -78,7 +112,7 @@ function ShippingPolicyPage() {
             <ul className="space-y-2.5 text-xs sm:text-sm text-muted-foreground border-t border-border/60 pt-4">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>সময়সীমা: <strong>২ থেকে ৩ কর্মদিবস</strong></span>
+                <span>সময়সীমা: <strong>{dhakaTimeline}</strong></span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -86,7 +120,7 @@ function ShippingPolicyPage() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>পার্সেল ওজনের অতিরিক্ত চার্জ: প্রতি কেজিতে ৳২০</span>
+                <span>পার্সেল ওজনের অতিরিক্ত চার্জ: প্রতি কেজিতে ৳{extraKgFee}</span>
               </li>
             </ul>
           </div>
@@ -101,7 +135,7 @@ function ShippingPolicyPage() {
                 </h3>
               </div>
               <div className="text-right">
-                <span className="text-3xl sm:text-4xl font-extrabold text-primary">৳১৩০</span>
+                <span className="text-3xl sm:text-4xl font-extrabold text-primary">৳{outsideFee}</span>
                 <span className="block text-[11px] text-muted-foreground">১ কেজি পর্যন্ত ফিক্সড</span>
               </div>
             </div>
@@ -109,7 +143,7 @@ function ShippingPolicyPage() {
             <ul className="space-y-2.5 text-xs sm:text-sm text-muted-foreground border-t border-border/60 pt-4">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>সময়সীমা: <strong>৩ থেকে ৫ কর্মদিবস</strong></span>
+                <span>সময়সীমা: <strong>{outsideTimeline}</strong></span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -117,7 +151,7 @@ function ShippingPolicyPage() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>পার্সেল ওজনের অতিরিক্ত চার্জ: প্রতি কেজিতে ৳২০</span>
+                <span>পার্সেল ওজনের অতিরিক্ত চার্জ: প্রতি কেজিতে ৳{extraKgFee}</span>
               </li>
             </ul>
           </div>
@@ -134,7 +168,7 @@ function ShippingPolicyPage() {
                 ১ কেজির বেশি পার্সেলের জন্য অতিরিক্ত চার্জ নিয়ম
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                যেহেতু ক্যানভাস, বড় ফ্রেম, ভারি কালার সেট ও ইজেল ওজনে ভারি হয়ে থাকে, তাই কুরিয়ার সার্ভিসের অফিসিয়াল রেট অনুযায়ী <strong>১ কেজির বেশি ওজনের পার্সেলে প্রতি অতিরিক্ত কেজির জন্য ৳২০ যোগ হবে।</strong>
+                যেহেতু ক্যানভাস, বড় ফ্রেম, ভারি কালার সেট ও ইজেল ওজনে ভারি হয়ে থাকে, তাই কুরিয়ার সার্ভিসের অফিসিয়াল রেট অনুযায়ী <strong>১ কেজির বেশি ওজনের পার্সেলে প্রতি অতিরিক্ত কেজির জন্য ৳{extraKgFee} যোগ হবে।</strong>
               </p>
             </div>
           </div>
@@ -153,33 +187,33 @@ function ShippingPolicyPage() {
               <tbody className="divide-y divide-border/60">
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="py-3.5 px-4 sm:px-6 font-medium">১ কেজি পর্যন্ত</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-bold text-primary">৳ ৮০</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-bold text-primary">৳ ১৩০</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-bold text-primary">৳ {dhakaFee}</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-bold text-primary">৳ {outsideFee}</td>
                   <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">বেসিক স্ট্যান্ডার্ড চার্জ</td>
                 </tr>
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="py-3.5 px-4 sm:px-6 font-medium">১.১ কেজি থেকে ২ কেজি</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১০০</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১৫০</td>
-                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳২০ অতিরিক্ত কেজি চার্জ</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(dhakaFeeNum + extraKgFeeNum)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(outsideFeeNum + extraKgFeeNum)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳{extraKgFee} অতিরিক্ত কেজি চার্জ</td>
                 </tr>
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="py-3.5 px-4 sm:px-6 font-medium">২.১ কেজি থেকে ৩ কেজি</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১২০</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১৭০</td>
-                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳৪০ অতিরিক্ত কেজি চার্জ</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(dhakaFeeNum + extraKgFeeNum * 2)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(outsideFeeNum + extraKgFeeNum * 2)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳{toBanglaDigits(extraKgFeeNum * 2)} অতিরিক্ত কেজি চার্জ</td>
                 </tr>
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="py-3.5 px-4 sm:px-6 font-medium">৩.১ কেজি থেকে ৪ কেজি</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১৪০</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১৯০</td>
-                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳৬০ অতিরিক্ত কেজি চার্জ</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(dhakaFeeNum + extraKgFeeNum * 3)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(outsideFeeNum + extraKgFeeNum * 3)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳{toBanglaDigits(extraKgFeeNum * 3)} অতিরিক্ত কেজি চার্জ</td>
                 </tr>
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="py-3.5 px-4 sm:px-6 font-medium">৪.১ কেজি থেকে ৫ কেজি</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ১৬০</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ ২১০</td>
-                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳৮০ অতিরিক্ত কেজি চার্জ</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(dhakaFeeNum + extraKgFeeNum * 4)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 font-semibold">৳ {toBanglaDigits(outsideFeeNum + extraKgFeeNum * 4)}</td>
+                  <td className="py-3.5 px-4 sm:px-6 text-muted-foreground text-xs">+৳{toBanglaDigits(extraKgFeeNum * 4)} অতিরিক্ত কেজি চার্জ</td>
                 </tr>
               </tbody>
             </table>
