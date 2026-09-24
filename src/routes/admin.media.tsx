@@ -41,6 +41,7 @@ import {
 import { supabase } from "@/integrations/supabase/external";
 import { uploadFileToR2 } from "@/lib/r2-storage";
 import { Spinner } from "@/components/site/Spinner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export const Route = createFileRoute("/admin/media")({
   component: AdminMediaPage,
@@ -67,6 +68,7 @@ type SortOption = "newest" | "oldest" | "size-desc" | "size-asc" | "name";
 
 function AdminMediaPage() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // States
@@ -1157,8 +1159,15 @@ function AdminMediaPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (confirm("স্থায়ীভাবে মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) {
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: "স্থায়ীভাবে মুছে ফেলতে চান?",
+                            description: "এই ফাইলটি স্থায়ীভাবে মুছে যাবে এবং এটি আর ফিরিয়ে আনা যাবে না।",
+                            confirmText: "মুছে ফেলুন",
+                            variant: "destructive",
+                            icon: "trash",
+                          });
+                          if (ok) {
                             deletePermanentMutation.mutate({ bucket: file.bucket, fullPath: file.fullPath });
                           }
                         }}
@@ -1298,8 +1307,15 @@ function AdminMediaPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (confirm("স্থায়ীভাবে মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) {
+                            onClick={async () => {
+                              const ok = await confirm({
+                                title: "স্থায়ীভাবে মুছে ফেলতে চান?",
+                                description: "এই ফাইলটি স্থায়ীভাবে মুছে যাবে এবং এটি আর ফিরিয়ে আনা যাবে না।",
+                                confirmText: "মুছে ফেলুন",
+                                variant: "destructive",
+                                icon: "trash",
+                              });
+                              if (ok) {
                                 deletePermanentMutation.mutate({ bucket: file.bucket, fullPath: file.fullPath });
                               }
                             }}

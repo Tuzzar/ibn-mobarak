@@ -17,6 +17,7 @@ import {
   type MenuCategoryRow,
 } from "@/lib/menu-categories";
 import { Spinner } from "@/components/site/Spinner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export const Route = createFileRoute("/admin/menu-categories")({
   ssr: false,
@@ -67,6 +68,7 @@ function flatten(items: Items, parent_id: string | null = null, depth = 0, acc: 
 
 function AdminMenuCategories() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const { data: rows, isLoading } = useQuery(menuCategoriesOptions());
   const serverTree = useMemo(() => rowsToTree((rows ?? []) as MenuCategoryRow[]), [rows]);
   const [items, setItems] = useState<Items>(() => withCollapsed(serverTree, {}));
@@ -128,7 +130,14 @@ function AdminMenuCategories() {
   };
 
   const deleteNode = async (id: string, label: string) => {
-    if (!confirm(`Delete "${label}" and all its subcategories?`)) return;
+    const ok = await confirm({
+      title: "Delete Category?",
+      description: `Are you sure you want to delete "${label}" and all its subcategories? This cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     setBusy(true);
     const { error } = await supabase.from("menu_categories" as any).delete().eq("id", id);
     setBusy(false);

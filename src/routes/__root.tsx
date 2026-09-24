@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
 import { AuthProvider } from "@/lib/auth";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { WhatsAppButton } from "@/components/site/WhatsAppButton";
@@ -152,7 +153,9 @@ function RootComponent() {
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
-            <Layout />
+            <ConfirmDialogProvider>
+              <Layout />
+            </ConfirmDialogProvider>
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>

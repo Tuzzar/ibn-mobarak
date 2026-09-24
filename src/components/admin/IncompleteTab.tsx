@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/external";
 import { formatBDT } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { ConvertLeadModal, type LeadForConvert } from "./ConvertLeadModal";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const STATUSES = ["new", "contacted", "recovered", "lost", "converted"] as const;
 type Status = (typeof STATUSES)[number];
@@ -62,6 +63,7 @@ function completeness(l: Lead) {
 
 export function IncompleteTab({ search }: { search: string }) {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const { data: leads, isLoading } = useLeads();
   const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -93,7 +95,14 @@ export function IncompleteTab({ search }: { search: string }) {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this incomplete order?")) return;
+    const ok = await confirm({
+      title: "Delete Incomplete Order?",
+      description: "Are you sure you want to delete this incomplete order? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("incomplete_orders").delete().eq("id", id);
     if (error) {
       toast.error("Could not delete");

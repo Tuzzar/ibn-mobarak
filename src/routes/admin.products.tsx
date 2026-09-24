@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/external";
 import { uploadFileToR2, deleteFileFromR2, bulkDeleteFilesFromR2 } from "@/lib/r2-storage";
 import { formatBDT } from "@/lib/cart";
 import { Spinner } from "@/components/site/Spinner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { SIZES, isSizeLabel, parseSizes, sizeSummary, totalSizeStock, type ProductVariant } from "@/lib/sizes";
 import {
   DndContext,
@@ -69,6 +70,7 @@ const getProductStock = (p: any): number => {
 
 function AdminProducts() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -218,8 +220,16 @@ function AdminProducts() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
     const prod = (products || []).find((p: any) => p.id === id);
+    const prodName = prod?.name ? `"${prod.name}"` : "this product";
+    const ok = await confirm({
+      title: "Delete Product?",
+      description: `Are you sure you want to delete ${prodName}? This will also remove associated image assets and cannot be undone.`,
+      confirmText: "Delete Product",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
 

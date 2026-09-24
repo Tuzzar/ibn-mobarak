@@ -13,6 +13,7 @@ import {
   type HomeSectionType,
 } from "@/lib/home-sections";
 import { SectionRow, useAccordionOpen } from "./SectionAccordion";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 /** Add-button + type-picker, mounted above the unified AccordionList. */
 export function AddCustomSectionButton() {
@@ -101,6 +102,7 @@ export function CustomSectionRow({
 }) {
   void id;
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const { openId, setOpenId } = useAccordionOpen();
   const meta = getSectionMeta(section.type);
 
@@ -119,7 +121,15 @@ export function CustomSectionRow({
   };
 
   const remove = async () => {
-    if (!confirm("Delete this custom section?")) return;
+    const title = section.title || meta?.label || "Custom section";
+    const ok = await confirm({
+      title: "Delete Section?",
+      description: `Are you sure you want to delete "${title}"? This section will be permanently removed from the home page.`,
+      confirmText: "Delete Section",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("home_sections").delete().eq("id", section.id);
     if (error) {
       toast.error(error.message);

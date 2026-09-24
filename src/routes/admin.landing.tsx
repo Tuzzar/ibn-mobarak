@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/external";
 import { uploadFileToR2 } from "@/lib/r2-storage";
 import { useAuth } from "@/lib/auth";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { landingPagesListOptions, type LandingPage, type LandingFeature, type LandingFaq, type LandingTrustItem, type LandingJourneyStep, type LandingStatItem } from "@/lib/landing-queries";
 import { allProductsSlugOptions } from "@/lib/queries";
 
@@ -97,6 +98,7 @@ const emptyPage = (): Partial<LandingPage> => ({
 function AdminLanding() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const { data: pages } = useSuspenseQuery(landingPagesListOptions());
   const [editing, setEditing] = useState<Partial<LandingPage> | null>(null);
 
@@ -109,7 +111,16 @@ function AdminLanding() {
   };
 
   const onDelete = async (id: string) => {
-    if (!confirm("Delete this landing page?")) return;
+    const target = (pages ?? []).find((p) => p.id === id);
+    const label = target?.slug ? `"${target.slug}"` : "this landing page";
+    const ok = await confirm({
+      title: "Delete Landing Page?",
+      description: `Are you sure you want to delete ${label}? All custom content for this landing page will be removed.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("landing_pages" as any).delete().eq("id", id);
     if (error) toast.error(error.message);
     else {

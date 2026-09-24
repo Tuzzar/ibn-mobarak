@@ -18,6 +18,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   listAdmins,
   createAdmin,
@@ -43,6 +44,7 @@ function AdminAdminsPage() {
   const { user, isAdministrator, loading } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!loading && !isAdministrator) navigate({ to: "/admin" });
@@ -173,7 +175,14 @@ function AdminAdminsPage() {
                   <button
                     disabled={isSelf}
                     onClick={async () => {
-                      if (!confirm(`Remove ${meta.label.toLowerCase()} access for ${row.email ?? "this user"}?`)) return;
+                      const ok = await confirm({
+                        title: `Remove ${meta.label} Access?`,
+                        description: `Are you sure you want to remove ${meta.label.toLowerCase()} access for ${row.email ?? "this user"}? They will lose access immediately.`,
+                        confirmText: "Remove Access",
+                        variant: "destructive",
+                        icon: "trash",
+                      });
+                      if (!ok) return;
                       try {
                         await removeFn({ data: { role_id: row.id } });
                         toast.success("Removed");

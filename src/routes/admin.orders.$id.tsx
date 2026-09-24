@@ -29,6 +29,7 @@ import {
   restoreAdminOrderFromTrash,
   deleteAdminOrderPermanently,
 } from "@/lib/orders.functions";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   ORDER_STATUS_STYLES,
   orderLabel,
@@ -42,6 +43,7 @@ export const Route = createFileRoute("/admin/orders/$id")({
 function OrderDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["admin-order", id],
@@ -96,7 +98,14 @@ function OrderDetailPage() {
   };
 
   const handleMoveToTrash = async () => {
-    if (!confirm("Are you sure you want to move this order to Trash?")) return;
+    const ok = await confirm({
+      title: `Move Order ${orderLabel(order)} to Trash?`,
+      description: "This order will be moved to the Trash tab. You can review or restore it anytime.",
+      confirmText: "Move to Trash",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     setIsTrashLoading(true);
     try {
       const { data: userRes } = await supabase.auth.getUser();
@@ -141,12 +150,14 @@ function OrderDetailPage() {
   };
 
   const handleDeletePermanently = async () => {
-    if (
-      !confirm(
-        "WARNING: This will permanently delete this order and all its history from the database! This action CANNOT be undone. Are you sure?",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Permanently Delete Order?",
+      description: "WARNING: This will permanently delete this order and all its items and history from the database! This action CANNOT be undone. Are you sure?",
+      confirmText: "Delete Permanently",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     setIsTrashLoading(true);
     try {
       await deleteAdminOrderPermanently({ data: { orderId: order.id } });

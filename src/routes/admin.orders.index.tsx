@@ -24,6 +24,7 @@ import {
   restoreAdminOrderFromTrash,
   deleteAdminOrderPermanently,
 } from "@/lib/orders.functions";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   ORDER_STATUSES as STATUSES,
   ORDER_STATUS_STYLES,
@@ -41,6 +42,7 @@ type CourierRow = { phone: string; success_rate: number; total_parcel: number };
 
 function AdminOrders() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [tab, setTab] = useState<"orders" | "incomplete" | "trash">("orders");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
@@ -93,7 +95,14 @@ function AdminOrders() {
   };
 
   const handleMoveToTrash = async (order: Order) => {
-    if (!confirm(`Move order ${orderLabel(order)} to Trash?`)) return;
+    const ok = await confirm({
+      title: `Move Order ${orderLabel(order)} to Trash?`,
+      description: `This order will be moved to the Trash tab. You can review or restore it anytime.`,
+      confirmText: "Move to Trash",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     setActionLoadingId(order.id);
     try {
       const { data: userRes } = await supabase.auth.getUser();
@@ -138,12 +147,14 @@ function AdminOrders() {
   };
 
   const handleDeletePermanently = async (order: Order) => {
-    if (
-      !confirm(
-        `WARNING: Permanently delete order ${orderLabel(order)}? This CANNOT be undone!`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Permanently Delete Order?",
+      description: `WARNING: Order ${orderLabel(order)} and all its associated items and history will be permanently deleted from the database. This action CANNOT be undone!`,
+      confirmText: "Delete Permanently",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
     setActionLoadingId(order.id);
     try {
       await deleteAdminOrderPermanently({ data: { orderId: order.id } });
