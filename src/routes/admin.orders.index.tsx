@@ -11,6 +11,7 @@ import {
   Trash2,
   RotateCcw,
   Printer,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/external";
@@ -23,7 +24,10 @@ import {
   moveAdminOrderToTrash,
   restoreAdminOrderFromTrash,
   deleteAdminOrderPermanently,
+  emptyAdminOrdersTrash,
+  getAdminEditedOrderIds,
 } from "@/lib/orders.functions";
+import { getAdminOrderLocks, type OrderLock } from "@/lib/order-lock.functions";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   ORDER_STATUSES as STATUSES,
@@ -48,6 +52,7 @@ function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [isEmptyingTrash, setIsEmptyingTrash] = useState(false);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
@@ -85,13 +90,43 @@ function AdminOrders() {
   const { data: editedIds } = useQuery({
     queryKey: ["admin-orders-edited"],
     queryFn: async () => {
-      const { data } = await supabase.from("order_history").select("order_id");
-      return new Set((data ?? []).map((r: { order_id: string }) => r.order_id));
+      const ids = await getAdminEditedOrderIds();
+      return new Set(ids);
     },
+  });
+
+  const { data: orderLocks } = useQuery({
+    queryKey: ["admin-order-locks"],
+    queryFn: () => getAdminOrderLocks(),
+    refetchInterval: 15000,
   });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    qc.invalidateQueries({ queryKey: ["admin-orders-edited"] });
+    qc.invalidateQueries({ queryKey: ["admin-order-locks"] });
+  };
+
+  const handleEmptyTrash = async () => {
+    const ok = await confirm({
+      title: "সম্পূর্ণ ট্র্যাশ খালি করতে চান?",
+      description:
+        "সতর্কতা: ট্র্যাশে থাকা সকল অর্ডার ও সেগুলোর সমস্ত হিস্টোরি ডাটাবেজ থেকে স্থায়ীভাবে মুছে যাবে! এই অ্যাকশনটি পূর্বাবস্থায় ফিরিয়ে আনা যাবে না। আপনি কি নিশ্চিত?",
+      confirmText: "হ্যাঁ, সম্পূর্ণ ট্র্যাশ মুছুন",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
+    setIsEmptyingTrash(true);
+    try {
+      await emptyAdminOrdersTrash();
+      toast.success("ট্র্যাশের সমস্ত অর্ডার স্থায়ীভাবে মুছে ফেলা হয়েছে");
+      invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to empty trash");
+    } finally {
+      setIsEmptyingTrash(false);
+    }
   };
 
   const handleMoveToTrash = async (order: Order) => {
@@ -264,6 +299,8 @@ function AdminOrders() {
             onRestore={handleRestore}
             onDeletePermanently={handleDeletePermanently}
             loadingId={actionLoadingId}
+            onEmptyTrash={handleEmptyTrash}
+            isEmptying={isEmptyingTrash}
           />
         ) : (
           <>
@@ -314,6 +351,7 @@ function AdminOrders() {
                         order={o}
                         courier={courierMap?.get(phoneKey(o.customer_phone)) ?? null}
                         wasEdited={editedIds?.has(o.id) ?? false}
+                        lock={orderLocks?.[o.id]}
                         onPrintInvoice={(order) => setSelectedInvoiceOrder(order)}
                         onMoveToTrash={handleMoveToTrash}
                         isActionLoading={actionLoadingId === o.id}
@@ -368,6 +406,7 @@ function OrderRow({
   order,
   courier,
   wasEdited,
+  lock,
   onPrintInvoice,
   onMoveToTrash,
   isActionLoading,
@@ -375,6 +414,7 @@ function OrderRow({
   order: Order;
   courier: CourierRow | null;
   wasEdited: boolean;
+  lock?: OrderLock;
   onPrintInvoice: (order: Order) => void;
   onMoveToTrash: (order: Order) => void;
   isActionLoading: boolean;
@@ -392,6 +432,14 @@ function OrderRow({
         <div className="text-[11px] text-muted-foreground uppercase tracking-wider mt-0.5">
           {order.source === "recovered" ? "Recovered" : "Web"}
         </div>
+        {lock && (
+          <div className="mt-1">
+            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-medium">
+              <Lock className="w-2.5 h-2.5" />
+              {lock.userName} দেখছেন
+            </span>
+          </div>
+        )}
         {wasEdited && (
           <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gold mt-1">
             <Pencil className="w-2.5 h-2.5" /> Edited
@@ -476,12 +524,16 @@ function TrashView({
   onRestore,
   onDeletePermanently,
   loadingId,
+  onEmptyTrash,
+  isEmptying,
 }: {
   orders: Order[];
   isLoading: boolean;
   onRestore: (order: Order) => void;
   onDeletePermanently: (order: Order) => void;
   loadingId: string | null;
+  onEmptyTrash: () => void;
+  isEmptying: boolean;
 }) {
   if (isLoading) {
     return (
@@ -502,11 +554,27 @@ function TrashView({
 
   return (
     <div className="space-y-4">
-      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <span>
           ট্র্যাশে থাকা অর্ডারগুলো মূল অর্ডার তালিকা এবং আয়ের হিসাব (Revenue) থেকে বাদ রাখা হয়। এখান থেকে এগুলো রিস্টোর অথবা স্থায়ীভাবে মুছে ফেলতে পারেন।
         </span>
-        <span className="font-semibold">{orders.length} in trash</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="font-semibold">{orders.length} in trash</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onEmptyTrash}
+            disabled={isEmptying || orders.length === 0}
+            className="h-8 text-xs gap-1.5"
+          >
+            {isEmptying ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
+            )}
+            সম্পূর্ণ ট্র্যাশ খালি করুন
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-border rounded-2xl bg-card">

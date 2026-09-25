@@ -12,6 +12,8 @@ import {
   RotateCcw,
   Pencil,
   AlertTriangle,
+  Lock,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/external";
@@ -22,6 +24,7 @@ import { CourierPanel } from "@/components/admin/CourierPanel";
 import { CourierDispatchPanel } from "@/components/admin/CourierDispatchPanel";
 import { OrderEditPanel } from "@/components/admin/OrderEditPanel";
 import { OrderHistoryPanel } from "@/components/admin/OrderHistoryPanel";
+import { useOrderLock } from "@/hooks/useOrderLock";
 import { OrderInvoiceModal } from "@/components/admin/OrderInvoiceModal";
 import { OrderItemsEditModal } from "@/components/admin/OrderItemsEditModal";
 import {
@@ -57,6 +60,11 @@ function OrderDetailPage() {
       return (data ?? null) as unknown as AdminOrder | null;
     },
   });
+
+  const { isLockedByOther, lockedBy, isIdle, hasMyLock, releaseLock, tryAcquire } = useOrderLock(
+    id,
+    Boolean(order),
+  );
 
   const { data: related } = useQuery({
     enabled: Boolean(order?.customer_phone),
@@ -193,6 +201,19 @@ function OrderDetailPage() {
           <span className="text-sm text-muted-foreground">
             {new Date(order.created_at).toLocaleString()}
           </span>
+
+          {/* Real-time Order Lock Status Badge */}
+          {isLockedByOther ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium">
+              <Lock className="w-3.5 h-3.5" />
+              {lockedBy?.userName || "অন্য অ্যাডমিন"} দেখছেন
+            </span>
+          ) : hasMyLock ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              লক সক্রিয় (আপনার অধীনে)
+            </span>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">
@@ -211,7 +232,7 @@ function OrderDetailPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleRestore}
-                disabled={isTrashLoading}
+                disabled={isTrashLoading || isLockedByOther}
                 className="gap-1.5 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
               >
                 <RotateCcw className="w-4 h-4" /> Restore
@@ -220,7 +241,7 @@ function OrderDetailPage() {
                 variant="destructive"
                 size="sm"
                 onClick={handleDeletePermanently}
-                disabled={isTrashLoading}
+                disabled={isTrashLoading || isLockedByOther}
                 className="gap-1.5"
               >
                 <Trash2 className="w-4 h-4" /> Delete Permanently
@@ -231,7 +252,7 @@ function OrderDetailPage() {
               variant="ghost"
               size="sm"
               onClick={handleMoveToTrash}
-              disabled={isTrashLoading}
+              disabled={isTrashLoading || isLockedByOther}
               className="gap-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
             >
               <Trash2 className="w-4 h-4" /> Move to Trash
@@ -239,6 +260,53 @@ function OrderDetailPage() {
           )}
         </div>
       </header>
+
+      {/* Locked By Other Admin Banner */}
+      {isLockedByOther && (
+        <div className="mt-4 p-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">
+                এই অর্ডারটি বর্তমানে {lockedBy?.userName || "অন্য একজন অ্যাডমিন"} দেখছেন বা এডিট করছেন
+              </div>
+              <div className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                একই সাথে একাধিক সম্পাদনা রোধ করতে অর্ডারটি সাময়িকভাবে রিড-অনলি মোডে রাখা হয়েছে। তিনি বের হলে বা ৩ মিনিট নিষ্ক্রিয় থাকলে এটি আনলক হবে।
+              </div>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => tryAcquire()}
+            className="text-xs border-amber-500/40 hover:bg-amber-500/10 shrink-0"
+          >
+            পুনরায় চেষ্টা করুন
+          </Button>
+        </div>
+      )}
+
+      {/* 3-Minute Idle Notification Banner */}
+      {isIdle && !isLockedByOther && (
+        <div className="mt-4 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-900 dark:text-blue-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>
+              আপনি ৩ মিনিট নিষ্ক্রিয় থাকায় অর্ডারটির লক ছেড়ে দেওয়া হয়েছে। আবার কাজ করতে যেকোনো জায়গায় ক্লিক করুন বা বাটনে চাপ দিন।
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => tryAcquire()}
+            className="h-7 text-xs border-blue-500/30 hover:bg-blue-500/10 shrink-0"
+          >
+            পুনরায় লক সক্রিয় করুন
+          </Button>
+        </div>
+      )}
 
       {/* Trash Warning Banner */}
       {order.status === "trash" && (
@@ -301,8 +369,9 @@ function OrderDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              disabled={isLockedByOther}
               onClick={() => setIsItemsEditOpen(true)}
-              className="h-8 text-xs gap-1.5 border-gold/40 hover:bg-gold/10 text-foreground"
+              className="h-8 text-xs gap-1.5 border-gold/40 hover:bg-gold/10 text-foreground disabled:opacity-50"
             >
               <Pencil className="w-3.5 h-3.5 text-gold" /> Edit Products
             </Button>
@@ -327,7 +396,14 @@ function OrderDetailPage() {
 
       <div className="mt-5 grid md:grid-cols-2 gap-5">
         <Card title="" icon={null}>
-          <OrderEditPanel order={order} onSaved={invalidate} />
+          <OrderEditPanel
+            order={order}
+            disabled={isLockedByOther}
+            onSaved={async () => {
+              invalidate();
+              await releaseLock();
+            }}
+          />
         </Card>
         <div className="space-y-5">
           <Card title="" icon={null}>
@@ -417,7 +493,10 @@ function OrderDetailPage() {
         order={order}
         isOpen={isItemsEditOpen}
         onClose={() => setIsItemsEditOpen(false)}
-        onSaved={invalidate}
+        onSaved={async () => {
+          invalidate();
+          await releaseLock();
+        }}
       />
     </div>
   );

@@ -49,9 +49,11 @@ export async function saveOrderChanges(
 export function OrderEditPanel({
   order,
   onSaved,
+  disabled = false,
 }: {
   order: AdminOrder;
   onSaved: () => void;
+  disabled?: boolean;
 }) {
   const initial = {
     customer_name: order.customer_name,
@@ -68,7 +70,7 @@ export function OrderEditPanel({
   );
 
   const save = async () => {
-    if (!dirty) return;
+    if (!dirty || disabled) return;
     setSaving(true);
     try {
       await saveOrderChanges(order, form);
@@ -83,9 +85,16 @@ export function OrderEditPanel({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <Pencil className="w-4 h-4 text-primary" />
-        <h3 className="font-display text-lg">Edit details</h3>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Pencil className="w-4 h-4 text-primary" />
+          <h3 className="font-display text-lg">Edit details</h3>
+        </div>
+        {disabled && (
+          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+            (লক অবস্থায় সম্পাদনা নিষ্ক্রিয়)
+          </span>
+        )}
       </div>
 
       <label className="block mb-4">
@@ -95,8 +104,9 @@ export function OrderEditPanel({
         <div className="flex gap-2">
           <select
             value={form.status}
+            disabled={disabled || saving}
             onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-sm capitalize"
+            className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {ORDER_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -104,7 +114,7 @@ export function OrderEditPanel({
               </option>
             ))}
           </select>
-          <Button onClick={save} disabled={!dirty || saving}>
+          <Button onClick={save} disabled={disabled || !dirty || saving}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update"}
           </Button>
         </div>
@@ -114,12 +124,14 @@ export function OrderEditPanel({
         <Field label="Customer name">
           <Input
             value={form.customer_name}
+            disabled={disabled || saving}
             onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
           />
         </Field>
         <Field label="Phone">
           <Input
             value={form.customer_phone}
+            disabled={disabled || saving}
             onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
           />
         </Field>
@@ -127,6 +139,7 @@ export function OrderEditPanel({
           <Textarea
             rows={2}
             value={form.address}
+            disabled={disabled || saving}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
         </Field>
@@ -134,16 +147,17 @@ export function OrderEditPanel({
           <Textarea
             rows={2}
             value={form.notes}
+            disabled={disabled || saving}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </Field>
       </div>
 
       <div className="flex justify-end gap-2 mt-5">
-        <Button variant="ghost" size="sm" onClick={() => setForm(initial)} disabled={!dirty || saving}>
+        <Button variant="ghost" size="sm" onClick={() => setForm(initial)} disabled={disabled || !dirty || saving}>
           <X className="w-4 h-4 mr-1" /> Reset
         </Button>
-        <Button size="sm" onClick={save} disabled={!dirty || saving}>
+        <Button size="sm" onClick={save} disabled={disabled || !dirty || saving}>
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving…

@@ -1,17 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { History, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/external";
 import { ORDER_FIELD_LABELS, type OrderHistoryEntry } from "@/lib/order-admin";
+import { getAdminOrderHistory } from "@/lib/orders.functions";
 
 export function OrderHistoryPanel({ orderId }: { orderId: string }) {
   const { data: history, isLoading } = useQuery({
     queryKey: ["order-history", orderId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("order_history")
-        .select("*")
-        .eq("order_id", orderId)
-        .order("created_at", { ascending: false });
+      const data = await getAdminOrderHistory({ data: { orderId } });
       return (data ?? []) as OrderHistoryEntry[];
     },
   });

@@ -407,3 +407,56 @@ export const updateAdminOrderItems = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+export const emptyAdminOrdersTrash = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { error } = await admin
+      .from("orders")
+      .delete()
+      .eq("status", "trash");
+
+    if (error) throw new Error(error.message);
+
+    return { success: true };
+  });
+
+const getOrderHistorySchema = z.object({
+  orderId: z.string().min(1),
+});
+
+export const getAdminOrderHistory = createServerFn({ method: "GET" })
+  .validator((input: unknown) => getOrderHistorySchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { data: rows, error } = await admin
+      .from("order_history")
+      .select("*")
+      .eq("order_id", data.orderId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return rows ?? [];
+  });
+
+export const getAdminEditedOrderIds = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    const { data: rows, error } = await admin
+      .from("order_history")
+      .select("order_id");
+
+    if (error) throw new Error(error.message);
+
+    return Array.from(new Set((rows ?? []).map((r) => r.order_id)));
+  });

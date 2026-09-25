@@ -2,12 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, X, Copy, Star, ArrowUp, ArrowDown, GripVertical, Search, Filter, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, X, Copy, Star, ArrowUp, ArrowDown, GripVertical, Search, Filter, RotateCcw, Package, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/external";
 import { uploadFileToR2, deleteFileFromR2, bulkDeleteFilesFromR2 } from "@/lib/r2-storage";
 import { formatBDT } from "@/lib/cart";
 import { Spinner } from "@/components/site/Spinner";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { cn } from "@/lib/utils";
+import {
+  getAdminTrashedProducts,
+  moveAdminProductToTrash,
+  restoreAdminProductFromTrash,
+  deleteAdminProductPermanently,
+  emptyAdminProductsTrash,
+  type TrashedProduct,
+} from "@/lib/product-trash.functions";
 import { SIZES, isSizeLabel, parseSizes, sizeSummary, totalSizeStock, type ProductVariant } from "@/lib/sizes";
 import {
   DndContext,
@@ -71,10 +80,19 @@ const getProductStock = (p: any): number => {
 function AdminProducts() {
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const [tab, setTab] = useState<"products" | "trash">("products");
+  const [trashSearch, setTrashSearch] = useState("");
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [isEmptyingTrash, setIsEmptyingTrash] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const { data: trashedProducts = [], isLoading: isTrashLoading } = useQuery({
+    queryKey: ["admin-trashed-products"],
+    queryFn: () => getAdminTrashedProducts(),
+  });
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -165,6 +183,17 @@ function AdminProducts() {
     return map;
   }, [filteredProducts]);
 
+  const filteredTrash = useMemo(() => {
+    const q = trashSearch.trim().toLowerCase();
+    if (!q) return trashedProducts;
+    return trashedProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        (p.category && p.category.toLowerCase().includes(q)),
+    );
+  }, [trashedProducts, trashSearch]);
+
   const save = async () => {
     if (!editing || saving) return;
     const slug = editing.slug || slugify(editing.name);
@@ -223,33 +252,95 @@ function AdminProducts() {
     const prod = (products || []).find((p: any) => p.id === id);
     const prodName = prod?.name ? `"${prod.name}"` : "this product";
     const ok = await confirm({
-      title: "Delete Product?",
-      description: `Are you sure you want to delete ${prodName}? This will also remove associated image assets and cannot be undone.`,
-      confirmText: "Delete Product",
+      title: "Move to Trash?",
+      description: `Are you sure you want to move ${prodName} to Trash? It will be hidden from the website immediately. You can restore it anytime or delete it permanently from the Trash tab.`,
+      confirmText: "Move to Trash",
       variant: "destructive",
       icon: "trash",
     });
     if (!ok) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) return toast.error(error.message);
 
-    // Clean up images from Cloudflare R2
-    if (prod) {
-      const allImgs = Array.from(
-        new Set([
-          ...(Array.isArray(prod.images) ? prod.images : []),
-          ...(prod.image_url ? [prod.image_url] : []),
-        ]),
-      );
-      if (allImgs.length > 0) {
-        bulkDeleteFilesFromR2(allImgs).catch((e) =>
-          console.warn("Notice: Failed to clean up R2 images:", e),
+    try {
+      await moveAdminProductToTrash({ data: { productId: id } });
+      toast.success(`${prodName} moved to Trash`);
+      qc.invalidateQueries({ queryKey: ["admin-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-trashed-products"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["featured-products"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to move to trash");
+    }
+  };
+
+  const handleRestoreProduct = async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      const res = await restoreAdminProductFromTrash({ data: { productId: id } });
+      toast.success(`"${res.productName}" restored to active products`);
+      qc.invalidateQueries({ queryKey: ["admin-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-trashed-products"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["featured-products"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to restore product");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handlePermanentDeleteProduct = async (item: TrashedProduct) => {
+    const ok = await confirm({
+      title: "Permanently Delete Product?",
+      description: `WARNING: "${item.name}" and all associated Cloudflare R2 images will be permanently removed. This action CANNOT be undone!`,
+      confirmText: "Delete Permanently",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
+
+    setActionLoadingId(item.id);
+    try {
+      const res = await deleteAdminProductPermanently({ data: { productId: item.id } });
+      if (res.imagesToDelete && res.imagesToDelete.length > 0) {
+        bulkDeleteFilesFromR2(res.imagesToDelete).catch((err) =>
+          console.warn("R2 cleanup notice:", err),
         );
       }
+      toast.success("Product permanently deleted");
+      qc.invalidateQueries({ queryKey: ["admin-trashed-products"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to permanently delete product");
+    } finally {
+      setActionLoadingId(null);
     }
+  };
 
-    toast.success("Deleted");
-    qc.invalidateQueries({ queryKey: ["admin-products"] });
+  const handleEmptyTrash = async () => {
+    if (trashedProducts.length === 0) return;
+    const ok = await confirm({
+      title: "Empty Entire Products Trash?",
+      description: `WARNING: This will permanently delete ALL ${trashedProducts.length} trashed products and permanently purge their images from Cloudflare R2 storage! This action CANNOT be undone. Are you sure?`,
+      confirmText: "Empty Entire Trash",
+      variant: "destructive",
+      icon: "trash",
+    });
+    if (!ok) return;
+
+    setIsEmptyingTrash(true);
+    try {
+      const res = await emptyAdminProductsTrash();
+      if (res.imagesToDelete && res.imagesToDelete.length > 0) {
+        bulkDeleteFilesFromR2(res.imagesToDelete).catch((err) =>
+          console.warn("R2 bulk cleanup notice:", err),
+        );
+      }
+      toast.success(`Trash emptied (${res.clearedCount} products deleted)`);
+      qc.invalidateQueries({ queryKey: ["admin-trashed-products"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to empty trash");
+    } finally {
+      setIsEmptyingTrash(false);
+    }
   };
 
   const duplicate = async (p: any) => {
@@ -375,14 +466,60 @@ function AdminProducts() {
         </div>
         <button
           onClick={() => setEditing({ ...empty })}
-          className="self-start sm:self-auto inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-medium shadow-xs hover:bg-primary/90 transition"
+          className="self-start sm:self-auto inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-medium shadow-xs hover:bg-primary/90 transition cursor-pointer"
         >
           <Plus className="w-4 h-4" /> New product
         </button>
       </div>
 
-      {/* Quick Stats Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+      {/* Main Tabs: Products vs Trash */}
+      <div className="flex items-center gap-3 border-b border-border/80 mb-6">
+        <button
+          type="button"
+          onClick={() => setTab("products")}
+          className={cn(
+            "flex items-center gap-2 pb-3 px-1 text-sm font-semibold border-b-2 transition cursor-pointer",
+            tab === "products"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Package className="w-4 h-4" />
+          <span>All Products</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-mono">
+            {products?.length ?? 0}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("trash")}
+          className={cn(
+            "flex items-center gap-2 pb-3 px-1 text-sm font-semibold border-b-2 transition cursor-pointer",
+            tab === "trash"
+              ? "border-rose-500 text-rose-500"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Trash</span>
+          <span
+            className={cn(
+              "text-xs px-2 py-0.5 rounded-full font-mono transition",
+              trashedProducts.length > 0
+                ? "bg-rose-500/15 text-rose-500 font-bold border border-rose-500/30"
+                : "bg-secondary text-secondary-foreground",
+            )}
+          >
+            {trashedProducts.length}
+          </span>
+        </button>
+      </div>
+
+      {tab === "products" && (
+        <>
+          {/* Quick Stats Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <button
           type="button"
           onClick={() => setSelectedStock("all")}
@@ -555,6 +692,178 @@ function AdminProducts() {
           );
         })}
       </div>
+      </>
+    )}
+
+      {/* Trash Tab View */}
+      {tab === "trash" && (
+        <div className="space-y-6">
+          {/* Top Bar for Trash */}
+          <div className="bg-card border border-border/80 rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={trashSearch}
+                onChange={(e) => setTrashSearch(e.target.value)}
+                placeholder="ট্র্যাশে থাকা পণ্য, স্লাগ বা ক্যাটাগরি খুঁজুন..."
+                className="w-full bg-background border border-border pl-10 pr-8 py-2 text-xs sm:text-sm rounded-xl outline-none focus:border-gold"
+              />
+              {trashSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTrashSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between sm:justify-end gap-3">
+              <span className="text-xs text-muted-foreground">
+                মোট ট্র্যাশ: <strong className="text-foreground">{trashedProducts.length}টি পণ্য</strong>
+              </span>
+
+              {trashedProducts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleEmptyTrash}
+                  disabled={isEmptyingTrash}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs sm:text-sm font-semibold transition cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isEmptyingTrash ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  <span>সব ট্র্যাশ খালি করুন</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Trashed Items List */}
+          {isTrashLoading ? (
+            <div className="p-12 text-center text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" /> ট্র্যাশ লোড হচ্ছে…
+            </div>
+          ) : trashedProducts.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground bg-card border border-border/80 rounded-2xl">
+              <Trash2 className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="font-medium text-foreground text-base">ট্র্যাশ খালি রয়েছে</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                কোনো পণ্য ট্র্যাশে নেই। কোনো পণ্য ডিলিট করলে তা এখানে জমা থাকবে।
+              </p>
+            </div>
+          ) : filteredTrash.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground bg-card border border-border/80 rounded-2xl">
+              সার্চের সাথে কোনো ট্র্যাশ পণ্য মেলেনি।
+            </div>
+          ) : (
+            <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[700px]">
+                  <thead className="bg-muted/50 text-xs text-muted-foreground uppercase tracking-wider border-b border-border font-semibold">
+                    <tr>
+                      <th className="p-3.5">পণ্য</th>
+                      <th className="p-3.5">ক্যাটাগরি</th>
+                      <th className="p-3.5">মূল্য</th>
+                      <th className="p-3.5">স্টক</th>
+                      <th className="p-3.5">ট্র্যাশের তারিখ</th>
+                      <th className="p-3.5 text-right">অ্যাকশন</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredTrash.map((p) => {
+                      const isActing = actionLoadingId === p.id;
+                      return (
+                        <tr key={p.id} className="hover:bg-muted/30 transition">
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-11 h-11 rounded-xl bg-muted overflow-hidden shrink-0 border border-border/60">
+                                {p.image_url ? (
+                                  <img
+                                    src={p.image_url}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">
+                                    No img
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 max-w-xs">
+                                <div className="font-semibold text-foreground truncate" title={p.name}>
+                                  {p.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground font-mono truncate">
+                                  {p.slug}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3.5 text-xs text-muted-foreground">
+                            {p.category || "—"}
+                            {p.subcategory && <span className="opacity-75"> / {p.subcategory}</span>}
+                          </td>
+                          <td className="p-3.5 font-semibold text-foreground text-xs sm:text-sm">
+                            {formatBDT(Number(p.price))}
+                          </td>
+                          <td className="p-3.5 text-xs">
+                            {Number(p.stock) > 0 ? (
+                              <span className="font-medium text-foreground">{p.stock} pcs</span>
+                            ) : (
+                              <span className="text-rose-500 font-semibold">0 · Out</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {p.trashed_at ? new Date(p.trashed_at).toLocaleString() : "—"}
+                          </td>
+                          <td className="p-3.5 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreProduct(p.id)}
+                                disabled={isActing}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                                title="পণ্যটি পুনরায় সক্রিয় করুন"
+                              >
+                                {isActing ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                )}
+                                <span>Restore</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handlePermanentDeleteProduct(p)}
+                                disabled={isActing}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                                title="স্থায়ীভাবে মুছে ফেলুন (R2 ইমেজসহ)"
+                              >
+                                {isActing ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                                <span>Permanent Delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {editing && (
         <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
