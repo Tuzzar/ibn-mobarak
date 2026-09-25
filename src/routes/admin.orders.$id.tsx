@@ -44,6 +44,11 @@ function OrderDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const navigate = useNavigate();
+
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [isItemsEditOpen, setIsItemsEditOpen] = useState(false);
+  const [isTrashLoading, setIsTrashLoading] = useState(false);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["admin-order", id],
@@ -66,6 +71,12 @@ function OrderDetailPage() {
     },
   });
 
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin-order", id] });
+    qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    qc.invalidateQueries({ queryKey: ["order-history", id] });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 text-muted-foreground py-24">
@@ -86,16 +97,6 @@ function OrderDetailPage() {
   }
 
   const others = (related ?? []).filter((o) => o.id !== order.id);
-  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
-  const [isItemsEditOpen, setIsItemsEditOpen] = useState(false);
-  const [isTrashLoading, setIsTrashLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["admin-order", id] });
-    qc.invalidateQueries({ queryKey: ["admin-orders"] });
-    qc.invalidateQueries({ queryKey: ["order-history", id] });
-  };
 
   const handleMoveToTrash = async () => {
     const ok = await confirm({
