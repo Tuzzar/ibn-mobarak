@@ -160,8 +160,8 @@ function ProductCardBase({ product, priority = false }: Props) {
       </div>
 
       {/* Body */}
-      <div className="flex flex-col flex-1 p-3 md:p-5 gap-2 md:gap-3">
-        <h3 className="font-display text-sm md:text-lg leading-[1.25] md:leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2 min-h-[2.5em]">
+      <div className="flex flex-col flex-1 p-3 sm:p-4 gap-2 md:gap-2.5">
+        <h3 className="font-display text-sm md:text-base lg:text-[17px] leading-[1.3] text-foreground group-hover:text-primary transition-colors line-clamp-2 min-h-[2.6em]">
           {product.name}
         </h3>
 
@@ -169,7 +169,7 @@ function ProductCardBase({ product, priority = false }: Props) {
         <div className="h-px w-8 bg-gold/60" />
 
         <div className="flex items-baseline gap-1.5 md:gap-2 flex-wrap">
-          <span className="font-display text-base md:text-xl text-primary">
+          <span className="font-display text-base md:text-lg text-primary">
             {hasSizes && sizes.some((s) => s.price !== sizes[0]?.price && s.price > 0) && (
               <span className="text-xs font-sans text-muted-foreground mr-1">From</span>
             )}
@@ -208,32 +208,32 @@ function ProductCardBase({ product, priority = false }: Props) {
           </div>
         )}
 
-        <div className="mt-auto pt-1 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-1.5 md:gap-2">
+        <div className="mt-auto pt-2 flex flex-col gap-1.5 w-full">
           <button
             onClick={handleAdd}
             disabled={adding || buying || soldOut}
             aria-label={hasSizes ? `Choose options for ${product.name}` : `Add ${product.name} to cart`}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-1.5 md:py-2.5 px-2 text-[11px] md:text-sm font-medium tracking-wide whitespace-nowrap transition-colors ${
+            className={`w-full inline-flex items-center justify-center gap-1.5 rounded-full py-2 px-2.5 text-xs sm:text-[13px] font-medium tracking-wide transition-colors ${
               soldOut
                 ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-75"
-                : "border border-primary/40 bg-background hover:bg-primary hover:text-primary-foreground text-primary disabled:opacity-60"
+                : "border border-primary/40 bg-background hover:bg-primary hover:text-primary-foreground text-primary disabled:opacity-60 cursor-pointer active:scale-[0.98]"
             }`}
           >
-            {adding ? <Spinner className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
-            {soldOut ? "স্টক আউট" : hasSizes ? "অপশন বাছাই করুন" : adding ? "যোগ হচ্ছে..." : "কার্টে যোগ করুন"}
+            {adding ? <Spinner className="w-3.5 h-3.5 shrink-0" /> : <ShoppingBag className="w-3.5 h-3.5 shrink-0" />}
+            <span className="truncate">{soldOut ? "স্টক আউট" : hasSizes ? "অপশন বাছাই করুন" : adding ? "যোগ হচ্ছে..." : "কার্টে যোগ করুন"}</span>
           </button>
           <button
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-1.5 md:py-2.5 px-2 text-[11px] md:text-sm font-semibold tracking-wide whitespace-nowrap transition-colors ${
+            className={`w-full inline-flex items-center justify-center gap-1.5 rounded-full py-2 px-2.5 text-xs sm:text-[13px] font-semibold tracking-wide transition-colors ${
               soldOut
                 ? "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-75"
-                : "bg-primary hover:bg-accent hover:text-accent-foreground text-primary-foreground disabled:opacity-60"
+                : "bg-primary hover:bg-accent hover:text-accent-foreground text-primary-foreground disabled:opacity-60 cursor-pointer active:scale-[0.98]"
             }`}
             onClick={handleBuyNow}
             disabled={buying || adding || soldOut}
             aria-label={`Buy ${product.name} now`}
           >
-            {buying ? <Spinner className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
-            {soldOut ? "স্টক নেই" : buying ? "অর্ডার হচ্ছে..." : "অর্ডার করুন"}
+            {buying ? <Spinner className="w-3.5 h-3.5 shrink-0" /> : <Zap className="w-3.5 h-3.5 shrink-0" />}
+            <span className="truncate">{soldOut ? "স্টক নেই" : buying ? "অর্ডার হচ্ছে..." : "অর্ডার করুন"}</span>
           </button>
         </div>
       </div>

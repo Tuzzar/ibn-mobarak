@@ -4,12 +4,12 @@ export function ProductCardSkeleton() {
   return (
     <div className="flex flex-col h-full rounded-xl md:rounded-3xl bg-card border border-border/60 overflow-hidden">
       <Skeleton className="aspect-square w-full rounded-none" />
-      <div className="flex flex-col flex-1 p-3 md:p-5 gap-2 md:gap-3">
+      <div className="flex flex-col flex-1 p-3 sm:p-4 gap-2 md:gap-2.5">
         <Skeleton className="h-4 md:h-5 w-3/4" />
         <Skeleton className="h-4 w-1/3" />
-        <div className="mt-auto pt-1 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-1.5 md:gap-2">
-          <Skeleton className="h-7 md:h-9 flex-1 rounded-full" />
-          <Skeleton className="h-7 md:h-9 flex-1 rounded-full" />
+        <div className="mt-auto pt-2 flex flex-col gap-1.5 w-full">
+          <Skeleton className="h-8 sm:h-9 w-full rounded-full" />
+          <Skeleton className="h-8 sm:h-9 w-full rounded-full" />
         </div>
       </div>
     </div>

@@ -170,22 +170,22 @@ function ShowcaseCard({ product, priority }: { product: Showcase; priority?: boo
           </span>
         </div>
 
-        <div className="mt-auto pt-1 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-1.5 md:gap-2">
+        <div className="mt-auto pt-2 flex flex-col gap-1.5 w-full">
           <button
             onClick={handleAdd}
             disabled={adding || buying}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-border bg-background hover:bg-secondary text-foreground rounded-full py-1.5 md:py-2.5 text-[11px] md:text-sm font-medium transition-colors disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-1.5 border border-primary/40 bg-background hover:bg-primary hover:text-primary-foreground text-primary rounded-full py-2 px-2.5 text-xs sm:text-[13px] font-medium transition-colors disabled:opacity-60 cursor-pointer active:scale-[0.98]"
           >
-            {adding ? <Spinner className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
-            {adding ? "Adding…" : "Add"}
+            {adding ? <Spinner className="w-3.5 h-3.5 shrink-0" /> : <ShoppingBag className="w-3.5 h-3.5 shrink-0" />}
+            <span>{adding ? "Adding…" : "Add"}</span>
           </button>
           <button
             onClick={handleBuy}
             disabled={buying || adding}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-1.5 md:py-2.5 text-[11px] md:text-sm font-medium transition-colors disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-accent hover:text-accent-foreground text-primary-foreground rounded-full py-2 px-2.5 text-xs sm:text-[13px] font-semibold transition-colors disabled:opacity-60 cursor-pointer active:scale-[0.98]"
           >
-            {buying ? <Spinner className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
-            {buying ? "Processing…" : "Buy Now"}
+            {buying ? <Spinner className="w-3.5 h-3.5 shrink-0" /> : <Zap className="w-3.5 h-3.5 shrink-0" />}
+            <span>{buying ? "Processing…" : "Buy Now"}</span>
           </button>
         </div>
       </div>
