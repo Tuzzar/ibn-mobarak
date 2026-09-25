@@ -83,7 +83,7 @@ export function QuickCategoryBar() {
 
   return (
     <div
-      className="w-full bg-card/95 backdrop-blur-md border-b border-border/70 sticky top-14 lg:top-16 z-40 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.06)]"
+      className="hidden md:block w-full bg-card/95 backdrop-blur-md border-b border-border/70 sticky top-14 lg:top-16 z-40 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.06)]"
       onMouseLeave={handleMouseLeave}
     >
       <div className="container mx-auto px-3 sm:px-6 max-w-7xl relative">

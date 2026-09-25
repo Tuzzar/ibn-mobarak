@@ -33,13 +33,13 @@ export function MobileBottomNav() {
   };
 
   const itemBase =
-    "group relative flex flex-1 flex-col items-center justify-center gap-[3px] rounded-2xl py-1.5 transition-colors duration-200";
+    "group relative flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1 transition-all duration-200";
 
   const Label = ({ children, active }: { children: React.ReactNode; active?: boolean }) => (
     <span
       className={cn(
-        "text-[9px] uppercase tracking-[0.14em] leading-none transition-colors",
-        active ? "text-primary font-semibold" : "text-foreground/50",
+        "text-[9.5px] uppercase tracking-wider leading-none transition-colors",
+        active ? "text-amber-700 dark:text-amber-400 font-bold" : "text-stone-500 dark:text-stone-400 font-medium",
       )}
     >
       {children}
@@ -57,7 +57,7 @@ export function MobileBottomNav() {
           onClick={() => setSearchOpen(false)}
         >
           <div
-            className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] bg-background border border-gold/25 rounded-2xl shadow-2xl p-3 animate-in slide-in-from-top-4 duration-300"
+            className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] bg-background border border-amber-500/20 rounded-2xl shadow-2xl p-3 animate-in slide-in-from-top-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
@@ -85,18 +85,18 @@ export function MobileBottomNav() {
         aria-label="Primary mobile"
         className="lg:hidden fixed bottom-0 inset-x-0 z-40 px-3 pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] pointer-events-none"
       >
-        <div className="pointer-events-auto mx-auto max-w-md rounded-[26px] border border-gold/25 bg-background/90 backdrop-blur-xl shadow-[0_16px_40px_-16px_oklch(0.22_0.04_155/0.45)] px-1.5 py-1.5">
+        <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-background/95 backdrop-blur-xl shadow-[0_12px_36px_-10px_rgba(0,0,0,0.18)] px-2 py-1.5">
           <ul className="grid grid-cols-5 items-end">
             {/* Home */}
             <li className="flex">
-              <Link to="/" className={cn(itemBase, isActive("/") ? "text-primary" : "text-foreground/55")}>
+              <Link to="/" className={cn(itemBase, isActive("/") ? "text-amber-700 dark:text-amber-400" : "text-stone-500 dark:text-stone-400")}>
                 <span
                   className={cn(
-                    "inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200",
-                    isActive("/") ? "bg-primary/10 ring-1 ring-gold/40" : "",
+                    "inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200",
+                    isActive("/") ? "bg-amber-500/12 text-amber-700 dark:text-amber-400" : "hover:text-foreground",
                   )}
                 >
-                  <Home className="w-[19px] h-[19px]" strokeWidth={isActive("/") ? 2.1 : 1.6} />
+                  <Home className="w-[18px] h-[18px]" strokeWidth={isActive("/") ? 2.2 : 1.7} />
                 </span>
                 <Label active={isActive("/")}>Home</Label>
               </Link>
@@ -107,48 +107,57 @@ export function MobileBottomNav() {
               <Link
                 to="/products"
                 search={{ category: null, q: "" }}
-                className={cn(itemBase, isActive("/products") ? "text-primary" : "text-foreground/55")}
+                className={cn(itemBase, isActive("/products") ? "text-amber-700 dark:text-amber-400" : "text-stone-500 dark:text-stone-400")}
               >
                 <span
                   className={cn(
-                    "inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200",
-                    isActive("/products") ? "bg-primary/10 ring-1 ring-gold/40" : "",
+                    "inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200",
+                    isActive("/products") ? "bg-amber-500/12 text-amber-700 dark:text-amber-400" : "hover:text-foreground",
                   )}
                 >
-                  <Store className="w-[19px] h-[19px]" strokeWidth={isActive("/products") ? 2.1 : 1.6} />
+                  <Store className="w-[18px] h-[18px]" strokeWidth={isActive("/products") ? 2.2 : 1.7} />
                 </span>
                 <Label active={isActive("/products")}>Shop</Label>
               </Link>
             </li>
 
-            {/* Cart — elevated center medallion */}
+            {/* Cart — modern elevated squircle button */}
             <li className="flex justify-center">
               <button
                 type="button"
                 onClick={() => setCartOpen(true)}
                 aria-label="Open cart"
-                className="relative flex flex-col items-center gap-[3px] -mt-6"
+                className="relative flex flex-col items-center gap-1 -mt-3.5"
               >
-                <span className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground ring-4 ring-background shadow-[0_10px_24px_-8px_oklch(0.22_0.04_155/0.6)] transition-transform duration-200 active:scale-95">
-                  <span aria-hidden className="absolute inset-1 rounded-full border border-gold/40" />
-                  <ShoppingBag className="w-[21px] h-[21px]" strokeWidth={1.8} />
+                <span className="relative inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-stone-900 text-white dark:bg-amber-500 dark:text-stone-950 border border-amber-500/30 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.35)] transition-transform duration-200 active:scale-95">
+                  <ShoppingBag className="w-5 h-5" strokeWidth={1.9} />
                   {count > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-gold text-gold-foreground text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center leading-none ring-2 ring-background">
+                    <span className="absolute -top-1 -right-1 bg-amber-500 text-stone-950 dark:bg-stone-900 dark:text-amber-400 text-[10px] font-bold min-w-[19px] h-[19px] px-1 rounded-full flex items-center justify-center leading-none ring-2 ring-background shadow-xs">
                       {count}
                     </span>
                   )}
                 </span>
-                <Label>Cart</Label>
+                <Label active={count > 0}>Cart</Label>
               </button>
             </li>
 
             {/* Search */}
             <li className="flex">
-              <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className={itemBase}>
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-foreground/60">
-                  <Search className="w-[19px] h-[19px]" strokeWidth={1.6} />
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search"
+                className={cn(itemBase, searchOpen ? "text-amber-700 dark:text-amber-400" : "text-stone-500 dark:text-stone-400")}
+              >
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200",
+                    searchOpen ? "bg-amber-500/12 text-amber-700 dark:text-amber-400" : "hover:text-foreground",
+                  )}
+                >
+                  <Search className="w-[18px] h-[18px]" strokeWidth={searchOpen ? 2.2 : 1.7} />
                 </span>
-                <Label>Search</Label>
+                <Label active={searchOpen}>Search</Label>
               </button>
             </li>
 
@@ -156,15 +165,15 @@ export function MobileBottomNav() {
             <li className="flex">
               <Link
                 to="/categories"
-                className={cn(itemBase, isActive("/categories") ? "text-primary" : "text-foreground/55")}
+                className={cn(itemBase, isActive("/categories") ? "text-amber-700 dark:text-amber-400" : "text-stone-500 dark:text-stone-400")}
               >
                 <span
                   className={cn(
-                    "inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200",
-                    isActive("/categories") ? "bg-primary/10 ring-1 ring-gold/40" : "",
+                    "inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200",
+                    isActive("/categories") ? "bg-amber-500/12 text-amber-700 dark:text-amber-400" : "hover:text-foreground",
                   )}
                 >
-                  <LayoutGrid className="w-[19px] h-[19px]" strokeWidth={isActive("/categories") ? 2.1 : 1.6} />
+                  <LayoutGrid className="w-[18px] h-[18px]" strokeWidth={isActive("/categories") ? 2.2 : 1.7} />
                 </span>
                 <Label active={isActive("/categories")}>Categories</Label>
               </Link>
