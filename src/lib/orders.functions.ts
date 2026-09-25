@@ -316,15 +316,67 @@ export const deleteAdminOrderPermanently = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+const searchCatalogSchema = z.object({
+  query: z.string().optional().default(""),
+});
+
+export const searchAdminCatalogProducts = createServerFn({ method: "GET" })
+  .validator((input: unknown) => searchCatalogSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { externalSupabaseAdmin: admin } = await import(
+      "@/integrations/supabase/external-admin.server"
+    );
+
+    let q = admin
+      .from("products")
+      .select("id, name, slug, price, discount_amount, stock, image_url, images, unit, weight_variants")
+      .order("name", { ascending: true })
+      .limit(60);
+
+    const term = data.query.trim();
+    if (term) {
+      q = q.ilike("name", `%${term}%`);
+    }
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+function extractProductInfo(item: any): { productId: string | null; variantLabel: string | null } {
+  let pid: string | null = item.productId || null;
+  let vlabel: string | null = item.variantLabel || item.size || null;
+
+  if (!pid && typeof item.id === "string") {
+    if (item.id.includes("::")) {
+      const parts = item.id.split("::");
+      pid = parts[0];
+      if (!vlabel) vlabel = parts.slice(1).join("::");
+    } else {
+      pid = item.id;
+    }
+  }
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (pid && !uuidRegex.test(pid)) {
+    pid = null;
+  }
+
+  return { productId: pid, variantLabel: vlabel ? vlabel.trim() : null };
+}
+
 const updateAdminOrderItemsSchema = z.object({
   orderId: z.string().min(1),
   items: z.array(
     z.object({
+      id: z.string().optional(),
+      productId: z.string().optional(),
       name: z.string().min(1),
       quantity: z.number().int().positive(),
       price: z.number().nonnegative(),
       unit: z.string().optional(),
       size: z.string().nullable().optional(),
+      image: z.string().optional(),
     }),
   ),
   subtotal: z.number().nonnegative(),
@@ -349,6 +401,101 @@ export const updateAdminOrderItems = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .single();
 
+    // 1. Calculate stock adjustments by comparing old items with new items
+    const oldItems: any[] = Array.isArray(curr?.items) ? curr.items : [];
+    const oldQtyMap = new Map<string, number>();
+    const newQtyMap = new Map<string, number>();
+    const keyToInfo = new Map<string, { productId: string; variantLabel: string | null }>();
+
+    for (const it of oldItems) {
+      const info = extractProductInfo(it);
+      if (info.productId) {
+        const key = `${info.productId}__${info.variantLabel || ""}`;
+        oldQtyMap.set(key, (oldQtyMap.get(key) || 0) + (Number(it.quantity) || 1));
+        keyToInfo.set(key, info);
+      }
+    }
+
+    for (const it of data.items) {
+      const info = extractProductInfo(it);
+      if (info.productId) {
+        const key = `${info.productId}__${info.variantLabel || ""}`;
+        newQtyMap.set(key, (newQtyMap.get(key) || 0) + (Number(it.quantity) || 1));
+        keyToInfo.set(key, info);
+      }
+    }
+
+    // Group deltas by productId
+    const productDeltas = new Map<string, Array<{ variantLabel: string | null; delta: number }>>();
+    for (const [key, info] of keyToInfo.entries()) {
+      const oldQty = oldQtyMap.get(key) || 0;
+      const newQty = newQtyMap.get(key) || 0;
+      const delta = newQty - oldQty;
+      if (delta !== 0) {
+        const list = productDeltas.get(info.productId) || [];
+        list.push({ variantLabel: info.variantLabel, delta });
+        productDeltas.set(info.productId, list);
+      }
+    }
+
+    const historyRows = [];
+
+    // 2. Synchronize stock in products table
+    for (const [productId, deltas] of productDeltas.entries()) {
+      const { data: prod } = await admin
+        .from("products")
+        .select("id, name, stock, weight_variants")
+        .eq("id", productId)
+        .maybeSingle();
+
+      if (prod) {
+        const currentStock = Number(prod.stock) || 0;
+        let variants = Array.isArray(prod.weight_variants) ? [...prod.weight_variants] : [];
+        let totalDelta = 0;
+
+        for (const itemDelta of deltas) {
+          totalDelta += itemDelta.delta;
+
+          if (itemDelta.variantLabel && variants.length > 0) {
+            variants = variants.map((v: any) => {
+              if (
+                v &&
+                typeof v === "object" &&
+                String(v.label || "").trim().toLowerCase() === itemDelta.variantLabel!.toLowerCase()
+              ) {
+                const vStock = Math.floor(Number(v.stock) || 0);
+                return {
+                  ...v,
+                  stock: Math.max(0, vStock - itemDelta.delta),
+                };
+              }
+              return v;
+            });
+          }
+        }
+
+        const newStock = Math.max(0, currentStock - totalDelta);
+
+        await admin
+          .from("products")
+          .update({
+            stock: newStock,
+            weight_variants: variants.length > 0 ? (variants as any) : prod.weight_variants,
+          })
+          .eq("id", productId);
+
+        historyRows.push({
+          order_id: data.orderId,
+          field_name: "stock_sync",
+          old_value: `${prod.name} (Stock: ${currentStock})`,
+          new_value: `${totalDelta > 0 ? `-${totalDelta}` : `+${-totalDelta}`} (New stock: ${newStock})`,
+          changed_by: data.user.id,
+          changed_by_email: data.user.email ?? null,
+        });
+      }
+    }
+
+    // 3. Update orders table
     const { error: upErr } = await admin
       .from("orders")
       .update({
@@ -361,7 +508,7 @@ export const updateAdminOrderItems = createServerFn({ method: "POST" })
 
     if (upErr) throw new Error(upErr.message);
 
-    const historyRows = [];
+    // 4. Record order history
     if (curr) {
       if (Number(curr.subtotal) !== Number(data.subtotal)) {
         historyRows.push({
