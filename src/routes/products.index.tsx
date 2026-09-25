@@ -121,9 +121,9 @@ export const Route = createFileRoute("/products/")({
         property: "og:description",
         content: "Premium art supplies, canvas, calligraphy and craft kits delivered across Bangladesh.",
       },
-      { property: "og:url", content: "/products" },
+      { property: "og:url", content: "https://ibnmobarakartgallery.com/products" },
     ],
-    links: [{ rel: "canonical", href: "/products" }],
+    links: [{ rel: "canonical", href: "https://ibnmobarakartgallery.com/products" }],
   }),
 });
 

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/terms")({
       },
       { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "canonical", href: "/terms" }],
+    links: [{ rel: "canonical", href: "https://ibnmobarakartgallery.com/terms" }],
   }),
 });
 

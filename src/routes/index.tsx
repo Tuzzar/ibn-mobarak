@@ -49,7 +49,7 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
     ],
     links: [
-      { rel: "canonical", href: "/" },
+      { rel: "canonical", href: "https://ibnmobarakartgallery.com/" },
     ],
     scripts: [
       {
@@ -58,9 +58,10 @@ export const Route = createFileRoute("/")({
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Ibn Mobarak Art Gallery",
+          url: "https://ibnmobarakartgallery.com",
           potentialAction: {
             "@type": "SearchAction",
-            target: "/products?q={search_term_string}",
+            target: "https://ibnmobarakartgallery.com/products?q={search_term_string}",
             "query-input": "required name=search_term_string",
           },
         }),

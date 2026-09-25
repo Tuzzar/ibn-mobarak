@@ -1,8 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Palette, Paintbrush, Layers, Package, Quote, ArrowRight, ShieldCheck, Truck, HandHeart, MapPin } from "lucide-react";
+import {
+  Palette,
+  Paintbrush,
+  Layers,
+  Package,
+  Quote,
+  ArrowRight,
+  ShieldCheck,
+  Truck,
+  HandHeart,
+  MapPin,
+  Award,
+  CheckCircle,
+  ExternalLink,
+  Sparkles,
+} from "lucide-react";
 import { siteContentOptions } from "@/lib/queries";
+
+function FacebookIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+      />
+    </svg>
+  );
+}
 
 export const Route = createFileRoute("/about")({
   component: About,
@@ -22,7 +54,7 @@ export const Route = createFileRoute("/about")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "/about" }],
+    links: [{ rel: "canonical", href: "https://ibnmobarakartgallery.com/about" }],
   }),
 });
 
@@ -31,11 +63,15 @@ const FALLBACK = {
     "Ibn Mobarak Art Gallery গড়ে উঠেছে একটি বিশেষ উদ্দেশ্য নিয়ে — বাংলাদেশের শিল্পী, ক্যালিগ্রাফার এবং আর্টপ্রেমীদের হাতে সেরা মানের আন্তর্জাতিক আর্ট সামগ্রী ও কাস্টম ক্যালিগ্রাফি পৌঁছে দেওয়া।",
   about_brand_intro_2:
     "অ্যাক্রিলিক কালার, নিখুঁত কটন ক্যানভাস, ফাইন-লাইন ব্রাশ থেকে শুরু করে কাঠের ইজেল — আমাদের প্রতিটি প্রোডাক্ট আপনার সৃজনশীলতাকে দেয় নতুন মাত্রা।",
-  about_founder_photo: "/studio.jpg",
-  about_founder_name: "Ibn Mobarak Art Gallery",
-  about_founder_tagline: "আর্টিস্ট · কিউরেটর · আর্ট হাব",
+  about_founder_photo: "/founder.jpg",
+  about_founder_name: "মুহাম্মদ মাহমুদুল হাসান (MD Mahmudul Hasan)",
+  about_founder_role: "প্রতিষ্ঠাতা ও প্রধান ক্যালিগ্রাফি শিল্পী",
+  about_founder_tagline: "বাংলাদেশের শীর্ষ ১০ জন সিনিয়র আরবি ক্যালিগ্রাফি শিল্পীদের অন্যতম",
+  about_founder_fb: "https://www.facebook.com/ibnmobarakbd",
   about_founder_bio:
-    "যাত্রাবাড়ী, ঢাকায় অবস্থিত একটি সমৃদ্ধ আর্ট স্টুডিও ও গ্যালারি — যেখানে প্রতিটি আর্টিস্ট মেটেরিয়াল ও ক্যালিগ্রাফি যত্ন নিয়ে যাচাই করে আপনার জন্য প্রস্তুত করা হয়।",
+    "বাংলাদেশের ক্যালিগ্রাফি অঙ্গনের এক অগ্রণী ও বরেণ্য ব্যক্তিত্ব। দুই দশকেরও বেশি সময়ের নিরবচ্ছিন্ন সাধনা ও শিল্পচর্চায় তিনি আরবি ক্যালিগ্রাফিকে পৌঁছে দিয়েছেন এক অনন্য উচ্চতায়। একজন সিনিয়র ক্যালিগ্রাফার হিসেবে খাঁটি ও দীর্ঘস্থায়ী শিল্প সৃষ্টির জন্য নিখুঁত উপাদানের গুরুত্ব তিনি গভীরভাবে উপলব্ধি করেন — আর সেই দায়বদ্ধতা থেকেই জন্ম নিয়েছে Ibn Mobarak Art Gallery।",
+  about_founder_quote:
+    "ক্যালিগ্রাফি শুধুই কাগজের ওপর হরফের বিন্যাস নয়; এটি ধৈর্য, আধ্যাত্মিক একাগ্রতা ও গভীর শিল্পবোধের মিলন। প্রতিটি শিল্পীর হাতে যেন খাঁটি, নির্ভরযোগ্য ও বিশ্বমানের আর্ট সামগ্রী পৌঁছে দিতে পারি — এটাই আমাদের পরম সাধনা।",
   about_article_heading: "গ্যালারি থেকে একটি চিঠি",
   about_article_body: "",
   about_pull_quote: "শিল্প ও নান্দনিকতার নির্ভরযোগ্য ঠিকানা — প্রতিটি রঙের স্পর্শে সৃজনশীলতার বিকাশ।",
@@ -101,10 +137,10 @@ function About() {
     {
       kicker: "Chapter 02",
       year: "স্টুডিও",
-      title: c("about_founder_name"),
+      title: "শিল্পীর হাতে শিল্পীর গ্যালারি",
       body: c("about_founder_bio"),
       tag: c("about_founder_tagline"),
-      image: photo,
+      image: photo || "/founder.jpg",
     },
     {
       kicker: "Chapter 03",
@@ -188,6 +224,162 @@ function About() {
               <span className="h-px w-8 bg-gold" />
             </figcaption>
           </figure>
+        </div>
+      </section>
+
+      {/* 2.5 MASTER CALLIGRAPHER & FOUNDER SPOTLIGHT */}
+      <section className="relative py-20 md:py-28 overflow-hidden bg-background">
+        {/* Subtle decorative background ambient glow */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_20%_30%,oklch(0.83_0.10_75/0.12),transparent_70%),radial-gradient(40%_40%_at_80%_70%,oklch(0.42_0.08_160/0.08),transparent_70%)]"
+        />
+
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            {/* Left: Archival Portrait Card */}
+            <div className="lg:col-span-5 flex justify-center">
+              <div className="relative w-full max-w-md">
+                {/* Decorative outer gold border */}
+                <div className="relative rounded-3xl p-2.5 sm:p-3 bg-gradient-to-b from-gold/50 via-gold/20 to-gold/40 shadow-2xl">
+                  <div className="relative rounded-[22px] overflow-hidden border border-gold/40 aspect-[4/5] bg-card">
+                    <img
+                      src={photo || "/founder.jpg"}
+                      alt={c("about_founder_name")}
+                      className="w-full h-full object-cover object-top filter brightness-[0.98] contrast-[1.02]"
+                    />
+
+                    {/* Top Right Floating Badge */}
+                    <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-md border border-gold/50 text-foreground px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-lg flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-gold shrink-0" />
+                      <span>শীর্ষ ১০ সিনিয়র ক্যালিগ্রাফার</span>
+                    </div>
+
+                    {/* Bottom Gradient Overlay */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-6 text-white">
+                      <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-gold/25 border border-gold/40 text-gold text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">
+                        Master Calligrapher
+                      </div>
+                      <h3 className="font-display text-2xl font-bold text-white tracking-wide">
+                        {c("about_founder_name")}
+                      </h3>
+                      <p className="text-xs text-white/80 mt-1 font-sans">
+                        {c("about_founder_role")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating Seal Stamp */}
+                <div className="hidden sm:flex absolute -bottom-5 -left-5 bg-card/95 backdrop-blur-md border-2 border-gold/60 rounded-2xl p-3.5 shadow-xl items-center gap-3 max-w-[240px]">
+                  <div className="w-10 h-10 rounded-full bg-gold/15 border border-gold/50 flex items-center justify-center shrink-0">
+                    <Award className="w-5 h-5 text-gold" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">সিনিয়র ক্যালিগ্রাফার</p>
+                    <p className="text-xs font-bold text-primary leading-tight mt-0.5">বাংলাদেশ ক্যালিগ্রাফি অঙ্গন</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Master's Story & Accolades */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-3">
+                <span className="h-px w-10 bg-gold" />
+                <span className="text-[10px] uppercase tracking-[0.4em] text-gold font-medium">
+                  Founder & Master Calligrapher
+                </span>
+                <span className="h-px w-10 bg-gold" />
+              </div>
+
+              <div>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl leading-[1.15] tracking-tight text-foreground">
+                  মুহাম্মদ মাহমুদুল হাসান
+                  <span className="block text-2xl sm:text-3xl text-primary font-normal mt-1.5 font-display">
+                    (MD Mahmudul Hasan / ইবন মোবারক)
+                  </span>
+                </h2>
+              </div>
+
+              {/* Prestigious Accolade Banner */}
+              <div className="inline-flex flex-wrap items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gold/15 border border-gold/40 text-foreground font-semibold text-sm sm:text-base shadow-sm">
+                <Award className="w-5 h-5 text-gold shrink-0" />
+                <span>{c("about_founder_tagline")}</span>
+              </div>
+
+              {/* Bio Story */}
+              <p className="text-muted-foreground text-[15px] sm:text-base leading-relaxed">
+                {c("about_founder_bio")}
+              </p>
+
+              {/* Founder's Personal Quote Card */}
+              {c("about_founder_quote") && (
+                <div className="relative rounded-2xl bg-card border-l-4 border-l-gold border-y border-r border-gold/25 p-5 sm:p-6 shadow-sm">
+                  <Quote className="w-6 h-6 text-gold/60 mb-2 rotate-180" strokeWidth={1.5} />
+                  <p className="italic text-foreground/90 font-serif text-[15px] sm:text-base leading-relaxed">
+                    "{c("about_founder_quote")}"
+                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary mt-3">
+                    — {c("about_founder_name")}
+                  </p>
+                </div>
+              )}
+
+              {/* 3 Prestigious Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
+                <div className="rounded-xl border border-gold/25 bg-[var(--section-a)] p-3.5 shadow-sm">
+                  <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                    <CheckCircle className="w-4 h-4 text-gold shrink-0" />
+                    <span>শীর্ষ ক্যালিগ্রাফার</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    জাতীয় ক্যালিগ্রাফি প্রদর্শনী ও ২০+ বছরের সাধনা
+                  </p>
+                </div>
+                <div className="rounded-xl border border-gold/25 bg-[var(--section-a)] p-3.5 shadow-sm">
+                  <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                    <CheckCircle className="w-4 h-4 text-gold shrink-0" />
+                    <span>শিল্পী কর্তৃক কিউরেটেড</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ক্যানভাস ও কালার নিজস্ব নিরীক্ষায় উত্তীর্ণ
+                  </p>
+                </div>
+                <div className="rounded-xl border border-gold/25 bg-[var(--section-a)] p-3.5 shadow-sm">
+                  <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                    <CheckCircle className="w-4 h-4 text-gold shrink-0" />
+                    <span>শিল্পীদের নির্ভরতা</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ৪৩,০০০+ শিল্পীদের সাথে সুদৃঢ় বন্ধন
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 flex flex-wrap items-center gap-3">
+                <a
+                  href={c("about_founder_fb")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-[#1877F2] text-white hover:bg-[#166fe5] text-sm font-semibold transition-all shadow-md hover:shadow-lg transform active:scale-95"
+                >
+                  <FacebookIcon className="w-4 h-4 fill-white" />
+                  <span>ফেসবুক প্রোফাইল দেখুন</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                </a>
+
+                <Link
+                  to="/products"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-gold text-foreground hover:bg-gold hover:text-gold-foreground text-sm font-semibold transition-all shadow-sm"
+                >
+                  <span>কিউরেটেড আর্ট সামগ্রী দেখুন</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

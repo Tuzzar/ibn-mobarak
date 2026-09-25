@@ -5,3 +5,5 @@ Disallow: /admin/
 Disallow: /cart
 Disallow: /checkout
 Disallow: /order-success
+
+Sitemap: https://ibnmobarakartgallery.com/sitemap.xml

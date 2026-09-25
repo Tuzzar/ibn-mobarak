@@ -64,6 +64,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Curated premium art supplies, canvases, paints, calligraphy pens, brushes and craft kits, delivered across Bangladesh." },
       { property: "og:site_name", content: "Ibn Mobarak Art Gallery" },
       { property: "og:locale", content: "en_US" },
+      { property: "og:url", content: "https://ibnmobarakartgallery.com" },
       { property: "og:title", content: "Ibn Mobarak Art Gallery — Premium Art & Calligraphy Supplies in Bangladesh" },
       { property: "og:description", content: "Curated premium art supplies, canvases, paints, calligraphy pens, brushes and craft kits, delivered across Bangladesh." },
       { property: "og:type", content: "website" },
@@ -71,10 +72,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Curated premium art supplies, canvases, paints, calligraphy pens, brushes and craft kits, delivered across Bangladesh." },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0f172a" },
-      { property: "og:image", content: "/og-image.png" },
+      { property: "og:image", content: "https://ibnmobarakartgallery.com/og-image.png" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { name: "twitter:image", content: "/og-image.png" },
+      { name: "twitter:image", content: "https://ibnmobarakartgallery.com/og-image.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -97,7 +98,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "Ibn Mobarak Art Gallery",
+          url: "https://ibnmobarakartgallery.com",
+          logo: "https://ibnmobarakartgallery.com/logo.png",
           description: "Curated premium art supplies, canvases, paints, calligraphy pens, brushes and craft kits, delivered across Bangladesh.",
+          sameAs: [
+            "https://facebook.com/ibnartgallery"
+          ],
           areaServed: "BD",
         }),
       },

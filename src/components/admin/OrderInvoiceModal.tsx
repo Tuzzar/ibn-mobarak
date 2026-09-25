@@ -177,7 +177,7 @@ export function OrderInvoiceModal({
                         </span>
                         {contact.phoneSecondary ? ` | ${contact.phoneSecondary}` : " | 01780-283161"}
                       </p>
-                      <p>Website: <span className="font-medium text-stone-800">ibnmobarak.art</span></p>
+                      <p>Website: <span className="font-medium text-stone-800">{contact.websiteDomain || "ibnmobarakartgallery.com"}</span></p>
                     </div>
                   </div>
                 </div>
@@ -376,7 +376,7 @@ export function OrderInvoiceModal({
 
               {/* Bottom Micro Footer */}
               <div className="mt-6 pt-3 border-t border-stone-100 text-center text-[10px] text-stone-400 tracking-wider">
-                Ibn Mobarak Art Gallery • House 37/3, Rasulpur R/A, Donia, Jatrabari, Dhaka 1236 • Web: www.ibnmobarak.art
+                Ibn Mobarak Art Gallery • {contact.address || "House 37/3, Rasulpur R/A, Donia, Jatrabari, Dhaka 1236"} • Web: www.{contact.websiteDomain || "ibnmobarakartgallery.com"}
               </div>
             </div>
           </div>

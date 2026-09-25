@@ -17,6 +17,8 @@ export type ContactInfo = {
   facebookUrl: string;
   instagramUrl: string;
   messengerUrl: string;
+  websiteDomain: string;
+  websiteUrl: string;
 };
 
 const DEFAULTS = {
@@ -31,6 +33,8 @@ const DEFAULTS = {
   facebookUrl: "https://facebook.com/ibnartgallery",
   instagramUrl: "",
   messengerUrl: "https://m.me/ibnartgallery",
+  websiteDomain: "ibnmobarakartgallery.com",
+  websiteUrl: "https://ibnmobarakartgallery.com",
 };
 
 export function buildContactInfo(map?: Record<string, string>): ContactInfo {
@@ -47,6 +51,8 @@ export function buildContactInfo(map?: Record<string, string>): ContactInfo {
       ? `88${rawWa}`
       : `880${rawWa}`;
   const whatsappMessage = get("contact_whatsapp_message", DEFAULTS.whatsappMessage);
+  const websiteDomain = get("contact_website_domain", DEFAULTS.websiteDomain);
+  const websiteUrl = get("contact_website_url", `https://${websiteDomain}`);
   return {
     email: get("contact_email", DEFAULTS.email),
     phone,
@@ -62,6 +68,8 @@ export function buildContactInfo(map?: Record<string, string>): ContactInfo {
     facebookUrl: get("contact_facebook_url", DEFAULTS.facebookUrl),
     instagramUrl: get("contact_instagram_url", DEFAULTS.instagramUrl),
     messengerUrl: get("contact_messenger_url", DEFAULTS.messengerUrl),
+    websiteDomain,
+    websiteUrl,
   };
 }
 

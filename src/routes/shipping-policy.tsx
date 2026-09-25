@@ -21,7 +21,7 @@ export const Route = createFileRoute("/shipping-policy")({
       },
       { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "canonical", href: "/shipping-policy" }],
+    links: [{ rel: "canonical", href: "https://ibnmobarakartgallery.com/shipping-policy" }],
   }),
 });
 

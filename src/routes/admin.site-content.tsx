@@ -68,8 +68,11 @@ const FIELDS = [
   "about_brand_intro_2",
   "about_founder_photo",
   "about_founder_name",
+  "about_founder_role",
   "about_founder_tagline",
+  "about_founder_fb",
   "about_founder_bio",
+  "about_founder_quote",
   "about_article_heading",
   "about_article_body",
   "about_pull_quote",
@@ -97,6 +100,8 @@ const FIELDS = [
   "contact_facebook_url",
   "contact_instagram_url",
   "contact_messenger_url",
+  "contact_website_domain",
+  "contact_website_url",
   "meta_pixel_id",
   ...([1, 2, 3, 4, 5, 6].flatMap((n) => [
     `category_${n}_image`,
@@ -2222,11 +2227,41 @@ function AdminSiteContent() {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Role / Designation</label>
+                  <input
+                    type="text"
+                    value={values.about_founder_role}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_role: e.target.value }))}
+                    placeholder="প্রতিষ্ঠাতা ও প্রধান ক্যালিগ্রাফি শিল্পী"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Facebook Profile URL</label>
+                  <input
+                    type="url"
+                    value={values.about_founder_fb}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_fb: e.target.value }))}
+                    placeholder="https://www.facebook.com/ibnmobarakbd"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Short bio (1–2 lines)</label>
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={values.about_founder_bio}
                     onChange={(e) => setValues((v) => ({ ...v, about_founder_bio: e.target.value }))}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Signature Quote (উক্তি)</label>
+                  <textarea
+                    rows={3}
+                    value={values.about_founder_quote}
+                    onChange={(e) => setValues((v) => ({ ...v, about_founder_quote: e.target.value }))}
+                    placeholder="ক্যালিগ্রাফি শুধুই কাগজের ওপর হরফের বিন্যাস নয়..."
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                   />
                 </div>
@@ -2380,15 +2415,30 @@ function AdminSiteContent() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ইমেইল (Email)</label>
-                <input
-                  type="email"
-                  value={values.contact_email}
-                  onChange={(e) => setValues((v) => ({ ...v, contact_email: e.target.value }))}
-                  placeholder="ibnmobarakartgallery@gmail.com"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ইমেইল (Email)</label>
+                  <input
+                    type="email"
+                    value={values.contact_email}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_email: e.target.value }))}
+                    placeholder="ibnmobarakartgallery@gmail.com"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">ওয়েবসাইট ডোমেইন (Website Domain)</label>
+                  <input
+                    type="text"
+                    value={values.contact_website_domain}
+                    onChange={(e) => setValues((v) => ({ ...v, contact_website_domain: e.target.value }))}
+                    placeholder="ibnmobarakartgallery.com"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    ক্যাশ মেমো/ইনভয়েস ও সোশ্যাল শেয়ারিং লিংকে ব্যবহৃত হবে (যেমন: ibnmobarakartgallery.com)।
+                  </p>
+                </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">

@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/external";
-import { expandSearchTokens, type QueryExpansionResult } from "./search-dictionary";
+import { expandSearchTokens, getProductLevelRank, type QueryExpansionResult } from "./search-dictionary";
 import { searchFuzzyCatalog } from "./fuzzy-search";
+
+export { getProductLevelRank };
 
 export interface DimPair {
   w: string;
@@ -92,7 +94,7 @@ export async function searchLiveSuggestions(
   if (!q || q.length < 2) return [];
 
   const tokens = parseSearchTokens(q);
-  const selectCols = "id, slug, name, price, discount_amount, image_url, category, stock";
+  const selectCols = "id, slug, name, price, discount_amount, image_url, category, stock, product_level, sort_order";
 
   try {
     let dimResults: any[] = [];
@@ -102,6 +104,8 @@ export async function searchLiveSuggestions(
         .from("products")
         .select(selectCols)
         .or(dimClauses)
+        .order("product_level", { ascending: true, nullsFirst: false })
+        .order("sort_order", { ascending: true })
         .limit(30);
       dimResults = data || [];
     }
@@ -116,6 +120,8 @@ export async function searchLiveSuggestions(
         .from("products")
         .select(selectCols)
         .or(kwClauses)
+        .order("product_level", { ascending: true, nullsFirst: false })
+        .order("sort_order", { ascending: true })
         .limit(30);
       kwResults = data || [];
     } else if (tokens.dimVariants.length === 0) {
@@ -123,6 +129,8 @@ export async function searchLiveSuggestions(
         .from("products")
         .select(selectCols)
         .ilike("name", `%${q}%`)
+        .order("product_level", { ascending: true, nullsFirst: false })
+        .order("sort_order", { ascending: true })
         .limit(30);
       kwResults = data || [];
     }
@@ -160,7 +168,18 @@ export async function searchLiveSuggestions(
       _didYouMean: tokens.didYouMean,
     }));
 
-    scored.sort((a, b) => b._score - a._score);
+    // Prioritize by product level rank (Level A -> B -> C -> D -> E -> F), then text relevance, then sort_order
+    scored.sort((a, b) => {
+      const rankA = getProductLevelRank(a.product_level);
+      const rankB = getProductLevelRank(b.product_level);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      if (b._score !== a._score) {
+        return b._score - a._score;
+      }
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
     return scored.slice(0, limit);
   } catch (err) {
     console.warn("Live search error:", err);

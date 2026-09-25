@@ -11,6 +11,8 @@ export type BrandLogo = {
 };
 
 export const SITE_NAME = "Ibn Mobarak Art Gallery";
+export const SITE_DOMAIN = "ibnmobarakartgallery.com";
+export const SITE_URL = "https://ibnmobarakartgallery.com";
 export const OLD_DEFAULT_LOGO_URL = "https://ayxnpifkrqohygyureqg.supabase.co/storage/v1/object/public/product-images/site/al-miftah-logo.png";
 export const DEFAULT_LOGO_URL = "/logo.svg";
 

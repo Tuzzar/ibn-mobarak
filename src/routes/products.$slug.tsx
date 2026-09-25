@@ -24,6 +24,8 @@ import {
 import { toast } from "sonner";
 import { useCart, formatBDT } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { useContactInfo } from "@/lib/contact";
+import { SITE_URL } from "@/lib/brand";
 import { OptimizedImage } from "@/components/site/OptimizedImage";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Spinner } from "@/components/site/Spinner";
@@ -41,7 +43,7 @@ export const Route = createFileRoute("/products/$slug")({
   },
   head: ({ params, loaderData }) => {
     const product = loaderData?.product as any;
-    const url = `/products/${params.slug}`;
+    const url = `${SITE_URL}/products/${params.slug}`;
     if (!product) {
       return {
         meta: [{ title: "Product — Ibn Mobarak Art Gallery" }],
@@ -118,6 +120,7 @@ function ProductDetail() {
   const navigate = useNavigate();
   const { data: product } = useSuspenseQuery(productBySlugOptions(slug));
   const { data: siteContent } = useQuery(siteContentOptions());
+  const contact = useContactInfo();
 
   const trustBadges = useMemo(() => [
     { icon: Award, label: siteContent?.product_badge_1 || "Premium" },
@@ -522,8 +525,8 @@ function ProductDetail() {
 
             {/* Direct WhatsApp Consultation CTA */}
             <a
-              href={`https://wa.me/8801918367980?text=${encodeURIComponent(
-                `আসসালামু আলাইকুম, আমি Ibn Mobarak Art Gallery থেকে "${product.name}" সম্পর্কে জানতে চাচ্ছি: https://ibnmobarak.art/products/${product.slug}`
+              href={`https://wa.me/${contact.whatsappNumber || "8801677870998"}?text=${encodeURIComponent(
+                `আসসালামু আলাইকুম, আমি Ibn Mobarak Art Gallery থেকে "${product.name}" সম্পর্কে জানতে চাচ্ছি: ${SITE_URL}/products/${product.slug}`
               )}`}
               target="_blank"
               rel="noopener noreferrer"

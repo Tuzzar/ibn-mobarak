@@ -15,6 +15,23 @@ import { HeaderCategoryMegamenu } from "./HeaderCategoryMegamenu";
 import { HeaderSearch } from "./HeaderSearch";
 import { Button } from "@/components/ui/button";
 
+function FacebookIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+      />
+    </svg>
+  );
+}
+
 const nav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/products", label: "Shop", icon: Store },
@@ -39,13 +56,17 @@ export function Header() {
   const brand = useBrandLogo();
   const { count } = useCart();
   const { count: wishlistCount } = useWishlist();
-  const { whatsappHref, phone, phoneHref } = useContactInfo();
+  const { whatsappHref, phone, phoneHref, facebookUrl } = useContactInfo();
+  const fbLink = facebookUrl || "https://facebook.com/ibnartgallery";
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastScrollY = useRef(0);
+  const scrollThreshold = 8;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,13 +77,42 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 10);
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const diff = currentScrollY - lastScrollY.current;
+
+      // 1. If near the top (within the announcement bar height), always reveal header
+      if (currentScrollY <= 40) {
+        setHeaderVisible(true);
+        setScrolled(false);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      setScrolled(true);
+
+      // 2. Prevent trigger on iOS rubber-band overscroll at page bottom
+      const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
+      if (currentScrollY > maxScrollY - 20) {
+        return;
+      }
+
+      // 3. Directional check with threshold to avoid micro-jitter
+      if (Math.abs(diff) > scrollThreshold) {
+        if (diff > 0) {
+          // Scrolling down -> Hide header
+          setHeaderVisible(false);
+        } else {
+          // Scrolling up -> Reveal header
+          setHeaderVisible(true);
+        }
+        lastScrollY.current = currentScrollY;
+      }
     };
 
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -85,6 +135,8 @@ export function Header() {
     setSearchOpen(false);
   };
 
+  const isHeaderShown = headerVisible || open || searchOpen;
+
   return (
     <>
       {/* Unified Luxury Announcement & Utility Strip (Scrolls with page) */}
@@ -102,8 +154,8 @@ export function Header() {
             </span>
           </div>
 
-          {/* Right contact links (Desktop & Tablet) */}
-          <div className="hidden md:flex items-center gap-4 lg:gap-5 text-[11px] tracking-[0.14em] uppercase shrink-0 text-slate-300">
+          {/* Right contact links (Desktop, Tablet & Mobile) */}
+          <div className="flex items-center gap-2.5 sm:gap-4 lg:gap-5 text-[11px] tracking-[0.14em] uppercase shrink-0 text-slate-300">
             <Link
               to="/shipping-policy"
               className="hidden lg:inline text-gold/90 text-[10px] tracking-[0.14em] font-medium hover:text-gold transition-colors"
@@ -113,29 +165,41 @@ export function Header() {
             <span className="hidden lg:inline text-slate-700">|</span>
             <a
               href={phoneHref}
-              className="inline-flex items-center gap-1.5 hover:text-gold transition-colors font-mono tracking-normal text-xs"
+              className="hidden md:inline-flex items-center gap-1.5 hover:text-gold transition-colors font-mono tracking-normal text-xs"
             >
               <Phone className="w-3 h-3 text-gold" strokeWidth={2} />
               <span>{phone}</span>
             </a>
-            <span className="text-slate-700">|</span>
+            <span className="hidden md:inline text-slate-700">|</span>
             <a
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors font-semibold tracking-wider text-[10px]"
+              className="hidden sm:inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors font-semibold tracking-wider text-[10px]"
             >
               <MessageCircle className="w-3.5 h-3.5" strokeWidth={2.2} />
               <span>WhatsApp</span>
+            </a>
+            <span className="hidden sm:inline text-slate-700">|</span>
+            <a
+              href={fbLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-slate-200 hover:text-white transition-colors font-semibold tracking-wider text-[10px]"
+              title="Facebook"
+            >
+              <FacebookIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Facebook</span>
             </a>
           </div>
         </div>
       </div>
 
-      {/* Main Navigation Bar — Top Sticky Frozen (Only on PC view: lg:sticky lg:top-0) */}
+      {/* Main Navigation Bar — Smart Sticky: Hides on scroll down, reveals on scroll up */}
       <header
         className={cn(
-          "relative lg:sticky lg:top-0 z-50 transition-all duration-300 ease-out bg-background/95 backdrop-blur-md",
+          "sticky top-0 z-50 transition-all duration-300 ease-out bg-background/95 backdrop-blur-md",
+          isHeaderShown ? "translate-y-0" : "max-lg:-translate-y-full",
           scrolled
             ? "border-b border-border/60 shadow-[0_4px_20px_-12px_rgba(15,23,42,0.15)]"
             : "border-b border-border/30",
@@ -229,7 +293,7 @@ export function Header() {
           </nav>
 
 
-          <div className="flex shrink-0 items-center justify-self-end gap-2 lg:gap-2.5">
+          <div className="flex shrink-0 items-center justify-self-end gap-1.5 sm:gap-2 lg:gap-2.5">
             {/* Desktop: separate medallion icon buttons — matches About/Contact style */}
             <div className="hidden lg:flex items-center gap-2.5">
               {/* Search — medallion button */}
@@ -243,6 +307,18 @@ export function Header() {
               >
                 <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
               </Button>
+
+              {/* Facebook — PC medallion button (Monochrome Black & White) */}
+              <a
+                href={fbLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook Page"
+                className="group relative size-10 rounded-full border border-gold/30 bg-section-a text-stone-900 dark:text-stone-100 hover:border-gold hover:text-primary inline-flex items-center justify-center transition-all shadow-xs"
+                title="Facebook Page"
+              >
+                <FacebookIcon className="w-[18px] h-[18px]" />
+              </a>
 
               {/* Wishlist — medallion button with count badge */}
               <WishlistDrawer>
@@ -281,6 +357,18 @@ export function Header() {
               </CartDrawer>
             </div>
 
+            {/* Mobile: Facebook medallion (Monochrome Black & White) */}
+            <a
+              href={fbLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook Page"
+              className="relative size-9 sm:size-10 rounded-full border border-gold/30 bg-section-a text-stone-900 dark:text-stone-100 hover:border-gold hover:text-primary inline-flex items-center justify-center transition-all lg:hidden shadow-xs"
+              title="Facebook"
+            >
+              <FacebookIcon className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+            </a>
+
             {/* Mobile: Wishlist medallion */}
             <WishlistDrawer>
               <Button
@@ -288,11 +376,11 @@ export function Header() {
                 variant="ghost"
                 size="icon"
                 aria-label="Open wishlist"
-                className="relative size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
+                className="relative size-9 sm:size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
               >
-                <Heart className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                <Heart className="w-4 h-4 sm:w-[18px] sm:h-[18px]" strokeWidth={1.75} />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full inline-flex items-center justify-center ring-2 ring-background">
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full inline-flex items-center justify-center ring-2 ring-background">
                     {wishlistCount}
                   </span>
                 )}
@@ -306,11 +394,11 @@ export function Header() {
                 variant="ghost"
                 size="icon"
                 aria-label="Open cart"
-                className="relative size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
+                className="relative size-9 sm:size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
               >
-                <ShoppingBag className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                <ShoppingBag className="w-4 h-4 sm:w-[18px] sm:h-[18px]" strokeWidth={1.75} />
                 {count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gold text-gold-foreground text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full inline-flex items-center justify-center ring-2 ring-background">
+                  <span className="absolute -top-1 -right-1 bg-gold text-gold-foreground text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full inline-flex items-center justify-center ring-2 ring-background">
                     {count}
                   </span>
                 )}
@@ -322,10 +410,10 @@ export function Header() {
               onClick={() => setOpen(true)}
               variant="ghost"
               size="icon"
-              className="size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
+              className="size-9 sm:size-10 rounded-full border border-gold/30 bg-section-a text-primary hover:border-gold lg:hidden"
               aria-label="Open menu"
             >
-              <Menu className="w-[18px] h-[18px]" strokeWidth={1.75} />
+              <Menu className="w-4 h-4 sm:w-[18px] sm:h-[18px]" strokeWidth={1.75} />
             </Button>
           </div>
         </div>
@@ -371,7 +459,7 @@ export function Header() {
             )}
           >
             {/* Header */}
-            <div className="grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6">
+            <div className="flex min-h-20 items-center justify-between gap-4 px-6">
               <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center" aria-label="Ibn Mobarak Art Gallery home">
                 {brand.hasCustomLogo && brand.url ? (
                   <img
@@ -387,12 +475,24 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              <SheetPrimitive.Close
-                className="inline-flex items-center justify-center w-9 h-9 text-foreground/60 hover:text-primary transition-colors"
-                aria-label="Close menu"
-              >
-                <X className="w-5 h-5" strokeWidth={1.5} />
-              </SheetPrimitive.Close>
+              <div className="flex items-center gap-2">
+                <a
+                  href={fbLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook Page"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-stone-100 hover:border-gold hover:text-primary transition-all shadow-xs"
+                  title="Facebook Page"
+                >
+                  <FacebookIcon className="w-4 h-4" />
+                </a>
+                <SheetPrimitive.Close
+                  className="inline-flex items-center justify-center w-9 h-9 text-foreground/60 hover:text-primary transition-colors"
+                  aria-label="Close menu"
+                >
+                  <X className="w-5 h-5" strokeWidth={1.5} />
+                </SheetPrimitive.Close>
+              </div>
             </div>
 
             {/* Search */}
@@ -475,17 +575,30 @@ export function Header() {
                     <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
                   </Link>
                   <a
+                    href={fbLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setOpen(false)}
+                    className="group flex items-center justify-between py-2 text-[12px] uppercase tracking-[0.22em] text-foreground/80 hover:text-primary transition-colors"
+                  >
+                    <span className="flex items-center gap-3">
+                      <FacebookIcon className="w-3.5 h-3.5 text-stone-900 dark:text-stone-100" />
+                      Facebook Page
+                    </span>
+                    <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
+                  </a>
+                  <a
                     href={whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setOpen(false)}
-                    className="group flex items-center justify-between py-2 text-[12px] uppercase tracking-[0.22em] text-foreground/75 hover:text-primary transition-colors"
+                    className="group flex items-center justify-between py-2 text-[12px] uppercase tracking-[0.22em] text-foreground/75 hover:text-emerald-500 transition-colors"
                   >
                     <span className="flex items-center gap-3">
-                      <MessageCircle className="w-3.5 h-3.5 text-primary" strokeWidth={1.6} />
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-500" strokeWidth={1.6} />
                       WhatsApp
                     </span>
-                    <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
+                    <span className="text-foreground/40 group-hover:text-emerald-500 transition-colors">→</span>
                   </a>
                 </div>
               </div>
@@ -502,6 +615,28 @@ export function Header() {
               <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
                 Premium art & craft supplies — paints, canvas, calligraphy, brushes & frames.
               </p>
+
+              {/* Social connect buttons (Monochrome Black & White for Facebook) */}
+              <div className="mt-4 pt-3.5 border-t border-border/40 flex items-center gap-2">
+                <a
+                  href={fbLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-stone-200 transition-all shadow-xs"
+                >
+                  <FacebookIcon className="w-3.5 h-3.5" />
+                  <span>Facebook Page</span>
+                </a>
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-500/25 transition-all shadow-xs"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </a>
+              </div>
             </div>
 
           </SheetPrimitive.Content>

@@ -329,8 +329,9 @@ export const searchAdminCatalogProducts = createServerFn({ method: "GET" })
 
     let q = admin
       .from("products")
-      .select("id, name, slug, price, discount_amount, stock, image_url, images, unit, weight_variants")
-      .order("name", { ascending: true })
+      .select("id, name, slug, price, discount_amount, stock, image_url, images, unit, weight_variants, product_level")
+      .order("product_level", { ascending: true, nullsFirst: false })
+      .order("sort_order", { ascending: true })
       .limit(60);
 
     const term = data.query.trim();

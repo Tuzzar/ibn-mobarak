@@ -181,7 +181,7 @@ export const productsCategoriesOptions = () =>
     },
   });
 
-import { parseSearchTokens, scoreProductRelevance } from "./search";
+import { parseSearchTokens, scoreProductRelevance, getProductLevelRank } from "./search";
 import { searchFuzzyCatalog } from "./fuzzy-search";
 import { getSubcategoryBySlug } from "@/data/artCategories";
 
@@ -305,9 +305,19 @@ export const productsInfiniteOptions = (
               if (!map.has(p.id)) map.set(p.id, p);
             }
 
-            const allScored = Array.from(map.values()).sort(
-              (a, b) => scoreProductRelevance(b, tokens) - scoreProductRelevance(a, tokens)
-            );
+            const allScored = Array.from(map.values()).sort((a, b) => {
+              const rankA = getProductLevelRank(a.product_level);
+              const rankB = getProductLevelRank(b.product_level);
+              if (rankA !== rankB) {
+                return rankA - rankB; // Level A (0) before Level B (1), etc.
+              }
+              const scoreA = scoreProductRelevance(a, tokens);
+              const scoreB = scoreProductRelevance(b, tokens);
+              if (scoreB !== scoreA) {
+                return scoreB - scoreA;
+              }
+              return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+            });
 
             const pageSlice = allScored.slice(from, to + 1);
             if (pageSlice.length > 0) {
@@ -344,7 +354,7 @@ export const productsInfiniteOptions = (
         } else if (sort === "newest") {
           q = q.order("created_at", { ascending: false });
         } else {
-          q = q.order("product_level", { ascending: true }).order("sort_order", { ascending: true });
+          q = q.order("product_level", { ascending: true, nullsFirst: false }).order("sort_order", { ascending: true });
         }
 
         const { data } = await q.range(from, to);
@@ -353,9 +363,17 @@ export const productsInfiniteOptions = (
           if (cleanSearch && (sort === "featured" || !sort)) {
             const tokens = parseSearchTokens(cleanSearch);
             const scored = [...data].sort((a, b) => {
+              const rankA = getProductLevelRank(a.product_level);
+              const rankB = getProductLevelRank(b.product_level);
+              if (rankA !== rankB) {
+                return rankA - rankB; // Level A (0) before Level B (1), etc.
+              }
               const scoreA = scoreProductRelevance(a, tokens);
               const scoreB = scoreProductRelevance(b, tokens);
-              return scoreB - scoreA;
+              if (scoreB !== scoreA) {
+                return scoreB - scoreA;
+              }
+              return (a.sort_order ?? 0) - (b.sort_order ?? 0);
             });
             return scored;
           }

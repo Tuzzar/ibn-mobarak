@@ -17,6 +17,13 @@ export interface QueryExpansionResult {
   dimPairs: Array<{ w: string; h: string; pattern: RegExp }>;
 }
 
+export function getProductLevelRank(level?: string | null): number {
+  if (!level) return 99;
+  const upper = String(level).trim().toUpperCase();
+  const index = ["A", "B", "C", "D", "E", "F"].indexOf(upper);
+  return index >= 0 ? index : 99;
+}
+
 // High-frequency typos and phonetic variants -> Canonical English term
 export const COMMON_TYPOS: Record<string, string> = {
   // Acrylic

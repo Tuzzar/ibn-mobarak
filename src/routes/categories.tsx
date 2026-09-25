@@ -45,7 +45,7 @@ export const Route = createFileRoute("/categories")({
       },
       { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "canonical", href: "/categories" }],
+    links: [{ rel: "canonical", href: "https://ibnmobarakartgallery.com/categories" }],
   }),
 });
 

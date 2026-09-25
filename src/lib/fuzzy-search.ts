@@ -1,6 +1,6 @@
 import Fuse from "fuse.js";
 import { supabase } from "@/integrations/supabase/external";
-import { expandSearchTokens } from "./search-dictionary";
+import { expandSearchTokens, getProductLevelRank } from "./search-dictionary";
 
 export interface SearchableProduct {
   id: string;
@@ -12,6 +12,8 @@ export interface SearchableProduct {
   category: string | null;
   subcategory: string | null;
   stock?: number | null;
+  product_level?: string | null;
+  sort_order?: number | null;
 }
 
 // In-memory catalog cache for client-side instant fuzzy search
@@ -39,7 +41,8 @@ export async function getSearchableCatalog(): Promise<SearchableProduct[]> {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, slug, name, price, discount_amount, image_url, category, subcategory, stock")
+        .select("id, slug, name, price, discount_amount, image_url, category, subcategory, stock, product_level, sort_order")
+        .order("product_level", { ascending: true, nullsFirst: false })
         .order("sort_order", { ascending: true })
         .limit(4000);
 
@@ -140,7 +143,17 @@ export async function searchFuzzyCatalog(
     if (results.length >= limit) break;
   }
 
-  // Sort highest score first
-  results.sort((a, b) => b._score - a._score);
+  // Sort by product level rank (Level A -> B -> C -> D -> E -> F), then fuzzy relevance score, then sort_order
+  results.sort((a, b) => {
+    const rankA = getProductLevelRank(a.product_level);
+    const rankB = getProductLevelRank(b.product_level);
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    if (b._score !== a._score) {
+      return b._score - a._score;
+    }
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
   return results.slice(0, limit);
 }
