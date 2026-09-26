@@ -161,8 +161,9 @@ function Checkout() {
         customer_name: parsed.data.customer_name,
         customer_phone: parsed.data.customer_phone,
       });
-      localStorage.setItem("recent_orders", JSON.stringify(recent.slice(0, 20)));
-    } catch {}
+    } catch {
+      // Ignore localStorage write error if private mode or storage quota exceeded
+    }
     clear();
     toast.success("অর্ডার সফলভাবে সম্পন্ন হয়েছে! শীঘ্রই কনফার্মেশন কল দেওয়া হবে।");
     navigate({ to: "/order-success", search: { id: orderId } });

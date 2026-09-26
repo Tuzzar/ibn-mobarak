@@ -130,6 +130,7 @@ export const categoryShowcaseProductsOptions = (category: string, limit = 8) =>
           .from("products")
           .select(LIST_COLS)
           .eq("category", category)
+          .order("product_level", { ascending: true })
           .order("sort_order", { ascending: true })
           .limit(limit);
         if (data && data.length > 0) return data;

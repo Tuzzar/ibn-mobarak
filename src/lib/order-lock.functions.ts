@@ -127,7 +127,7 @@ export const refreshOrderLock = createServerFn({ method: "POST" })
     const { locks } = await loadActiveLocks(admin);
 
     const existing = locks[data.orderId];
-    if (!existing || existing.userId !== data.user.id) {
+    if (!existing || existing.userId !== data.userId) {
       return { refreshed: false };
     }
 

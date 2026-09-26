@@ -47,7 +47,7 @@ export function OrderInvoiceModal({
       const invoiceCode = order.order_no ? String(order.order_no).padStart(4, "0") : order.id.slice(0, 8).toUpperCase();
 
       const opt = {
-        margin: [6, 8, 6, 8], // mm (top, right, bottom, left)
+        margin: [6, 8, 6, 8] as [number, number, number, number], // mm (top, right, bottom, left)
         filename: `Invoice-INV-${invoiceCode}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: {

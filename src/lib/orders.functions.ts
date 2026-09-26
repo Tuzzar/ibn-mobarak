@@ -413,7 +413,7 @@ export const updateAdminOrderItems = createServerFn({ method: "POST" })
       if (info.productId) {
         const key = `${info.productId}__${info.variantLabel || ""}`;
         oldQtyMap.set(key, (oldQtyMap.get(key) || 0) + (Number(it.quantity) || 1));
-        keyToInfo.set(key, info);
+        keyToInfo.set(key, { productId: info.productId, variantLabel: info.variantLabel });
       }
     }
 
@@ -422,7 +422,7 @@ export const updateAdminOrderItems = createServerFn({ method: "POST" })
       if (info.productId) {
         const key = `${info.productId}__${info.variantLabel || ""}`;
         newQtyMap.set(key, (newQtyMap.get(key) || 0) + (Number(it.quantity) || 1));
-        keyToInfo.set(key, info);
+        keyToInfo.set(key, { productId: info.productId, variantLabel: info.variantLabel });
       }
     }
 

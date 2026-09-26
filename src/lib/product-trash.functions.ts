@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 
 export type TrashedProduct = {
   id: string;
@@ -16,7 +17,7 @@ export type TrashedProduct = {
   featured: boolean;
   product_level: string;
   sort_order: number;
-  weight_variants: unknown;
+  weight_variants: Json;
   discount_amount: number;
   trashed_at: string;
 };

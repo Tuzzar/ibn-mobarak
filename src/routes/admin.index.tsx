@@ -172,7 +172,7 @@ function AdminDashboard() {
           image_url: item.image_url ?? null,
           qty: 0,
           revenue: 0,
-          slug: item.slug ?? "",
+          slug: (item as any).slug ?? "",
         };
         existing.qty += Number(item.quantity ?? 0);
         existing.revenue += Number(item.price ?? 0) * Number(item.quantity ?? 0);

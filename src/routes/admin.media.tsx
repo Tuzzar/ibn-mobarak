@@ -134,7 +134,8 @@ function AdminMediaPage() {
     }> = [];
 
     catalogProducts.forEach((p) => {
-      const urls = [p.image_url, ...(p.images || [])].filter(Boolean) as string[];
+      const extraImages = Array.isArray(p.images) ? (p.images as string[]) : [];
+      const urls = [p.image_url, ...extraImages].filter(Boolean) as string[];
       const uniqueUrls = Array.from(new Set(urls));
       uniqueUrls.forEach((u, i) => {
         list.push({
@@ -161,7 +162,16 @@ function AdminMediaPage() {
       setRenameTarget(null);
       setRenameValue("");
       if (previewFile && renameTarget && previewFile.id === renameTarget.id) {
-        setPreviewFile((prev) => (prev ? { ...prev, name: res.newName, fullPath: res.newFullPath, publicUrl: res.newUrl } : null));
+        setPreviewFile((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: res.newName || prev.name,
+                fullPath: res.newFullPath || prev.fullPath,
+                publicUrl: res.newUrl || prev.publicUrl,
+              }
+            : null,
+        );
       }
       qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
     },
@@ -231,7 +241,7 @@ function AdminMediaPage() {
       return bulkMoveToTrash({ data: { items } });
     },
     onSuccess: (res) => {
-      toast.success(`${res.count}টি ফাইল ট্র্যাশে পাঠানো হয়েছে!`);
+      toast.success(`${res.successCount}টি ফাইল ট্র্যাশে পাঠানো হয়েছে!`);
       setSelectedIds(new Set());
       setConfirmBulkTrashModal(false);
       qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
@@ -246,7 +256,7 @@ function AdminMediaPage() {
       return bulkRestoreFromTrash({ data: { items } });
     },
     onSuccess: (res) => {
-      toast.success(`${res.count}টি ফাইল ট্র্যাশ থেকে পুনরুদ্ধার করা হয়েছে!`);
+      toast.success(`${res.successCount}টি ফাইল ট্র্যাশ থেকে পুনরুদ্ধার করা হয়েছে!`);
       setSelectedIds(new Set());
       qc.invalidateQueries({ queryKey: ["admin-media-summary"] });
     },
@@ -260,7 +270,7 @@ function AdminMediaPage() {
       return bulkDeleteMediaPermanently({ data: { items } });
     },
     onSuccess: (res) => {
-      toast.success(`${res.count}টি ফাইল স্থায়ীভাবে মুছে ফেলা হয়েছে!`);
+      toast.success(`${res.deletedCount}টি ফাইল স্থায়ীভাবে মুছে ফেলা হয়েছে!`);
       setSelectedIds(new Set());
       setConfirmBulkDeleteModal(false);
       qc.invalidateQueries({ queryKey: ["admin-media-summary"] });

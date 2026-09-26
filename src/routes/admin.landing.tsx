@@ -298,11 +298,11 @@ function Editor({
     if (!initial.slug) return;
     let active = true;
     (async () => {
-      const { data } = await supabase
-        .from("site_content" as any)
+      const { data } = (await (supabase as any)
+        .from("site_content")
         .select("value")
         .eq("key", `landing_whatsapp_${initial.slug}`)
-        .maybeSingle();
+        .maybeSingle()) as { data: { value?: string } | null };
       if (active && data?.value) {
         setWhatsappNumber(data.value);
       }

@@ -130,9 +130,10 @@ function ProductDetail() {
     { icon: Gift, label: siteContent?.product_badge_5 || "Gift-Wrapped" },
   ], [siteContent]);
 
+  const rawVariants = (product as any)?.weight_variants;
   const sizes = useMemo(
-    () => parseSizes((product as any)?.weight_variants),
-    [(product as any)?.weight_variants],
+    () => parseSizes(rawVariants),
+    [rawVariants],
   );
   const hasSizes = sizes.length > 0;
   const sizeStockTotal = totalSizeStock(sizes);
@@ -169,23 +170,23 @@ function ProductDetail() {
   const activeUnit = activeSize ? activeSize.label : (product?.unit ?? "pcs");
   const maxQty = activeSize ? Math.max(1, activeSize.stock) : Math.max(1, Number(product?.stock ?? 25));
 
-
+  const rawImages = (product as any)?.images;
+  const primaryImageUrl = product?.image_url;
   const images = useMemo(() => {
-    const raw = (product as any)?.images;
-    const arr = Array.isArray(raw)
-      ? raw.filter((u): u is string => typeof u === "string" && u.length > 0)
+    const arr = Array.isArray(rawImages)
+      ? rawImages.filter((u): u is string => typeof u === "string" && u.length > 0)
       : [];
-    if (arr.length === 0 && product?.image_url) arr.push(product.image_url);
+    if (arr.length === 0 && primaryImageUrl) arr.push(primaryImageUrl);
     // Ensure primary image_url is first if present
-    if (product?.image_url && arr[0] !== product.image_url) {
-      const idx = arr.indexOf(product.image_url);
+    if (primaryImageUrl && arr[0] !== primaryImageUrl) {
+      const idx = arr.indexOf(primaryImageUrl);
       if (idx > 0) {
         arr.splice(idx, 1);
-        arr.unshift(product.image_url);
+        arr.unshift(primaryImageUrl);
       }
     }
     return Array.from(new Set(arr));
-  }, [(product as any)?.images, product?.image_url]);
+  }, [rawImages, primaryImageUrl]);
   const [activeIdx, setActiveIdx] = useState(0);
   useEffect(() => {
     setActiveIdx(0);
