@@ -25,9 +25,6 @@ export function CalligraphySpotlightSection() {
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-foreground">
             ইসলামিক ক্যালিগ্রাফি ও হ্যান্ড-লেটারিং সামগ্রী
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            হাতে তৈরি হেন্দাম ও জাভা কলম, পাইলট প্যারালাল পেন, লিকা, দাওয়াত ও স্পেশাল ক্যালিগ্রাফি পেপার
-          </p>
         </div>
 
         <Link

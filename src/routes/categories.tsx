@@ -4,6 +4,7 @@ import {
   Search,
   LayoutGrid,
   ChevronRight,
+  ChevronDown,
   ArrowRight,
   Flame,
   PackagePlus,
@@ -77,7 +78,18 @@ const QUICK_TAGS = [
 function CategoriesPage() {
   const [selectedSlug, setSelectedSlug] = useState<string>("paints");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
   const rightPanelRef = useRef<HTMLDivElement>(null);
+
+  // If selected category is beyond initial 2 rows (item index >= 6), auto-expand on mobile
+  useEffect(() => {
+    if (selectedSlug !== "all") {
+      const idx = MASTER_ART_CATEGORIES.findIndex((c) => c.slug === selectedSlug);
+      if (idx >= 5) {
+        setIsMobileExpanded(true);
+      }
+    }
+  }, [selectedSlug]);
 
   // Instant scroll to top when category changes
   useEffect(() => {
@@ -212,8 +224,8 @@ function CategoriesPage() {
             </div>
 
             {/* Category Navigation Items */}
-            <div className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible no-scrollbar p-1.5 lg:p-2.5 gap-1 lg:gap-1.5 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto">
-              {/* "ALL" Overview Item */}
+            <div className="grid grid-cols-3 lg:flex lg:flex-col p-1.5 sm:p-2 lg:p-2.5 gap-1.5 lg:gap-1.5 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto">
+              {/* "ALL" Overview Item (Index 0) */}
               <button
                 type="button"
                 onClick={() => {
@@ -221,21 +233,21 @@ function CategoriesPage() {
                   setSelectedSlug("all");
                 }}
                 className={cn(
-                  "group relative flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl lg:rounded-2xl transition-all duration-150 cursor-pointer shrink-0 lg:shrink text-left w-auto lg:w-full",
+                  "group relative flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 px-2 sm:px-2.5 lg:px-3 py-1.5 sm:py-2 lg:py-2.5 rounded-xl lg:rounded-2xl transition-all duration-150 cursor-pointer text-left w-full",
                   selectedSlug === "all" && !searchQuery
-                    ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                    : "text-foreground/75 hover:bg-muted/70 hover:text-foreground",
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs ring-1 ring-primary/20"
+                    : "bg-muted/30 hover:bg-muted/70 text-foreground/80 hover:text-foreground border border-border/40 lg:border-transparent",
                 )}
               >
                 <div
                   className={cn(
-                    "w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                    "w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0 transition-colors",
                     selectedSlug === "all" && !searchQuery
                       ? "bg-primary-foreground/15 text-gold"
-                      : "bg-muted/60 text-foreground/70 group-hover:text-primary",
+                      : "bg-muted/70 text-foreground/70 group-hover:text-primary",
                   )}
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
 
                 <div className="hidden lg:flex flex-col min-w-0 flex-1">
@@ -252,7 +264,7 @@ function CategoriesPage() {
                   </span>
                 </div>
 
-                <span className="lg:hidden text-xs font-bold whitespace-nowrap">
+                <span className="lg:hidden text-[11px] sm:text-xs font-bold whitespace-nowrap truncate flex-1 min-w-0">
                   ALL
                 </span>
 
@@ -266,10 +278,12 @@ function CategoriesPage() {
                 />
               </button>
 
-              {/* Master Category Items */}
-              {MASTER_ART_CATEGORIES.map((cat) => {
+              {/* Master Category Items (Indices 1 to 10) */}
+              {MASTER_ART_CATEGORIES.map((cat, idx) => {
+                const itemIndex = idx + 1; // 1 to 10
                 const isSelected = selectedSlug === cat.slug && !searchQuery;
                 const IconComp = ICON_MAP[cat.iconName] || Palette;
+                const isHiddenOnMobile = itemIndex >= 6 && !isMobileExpanded;
 
                 return (
                   <button
@@ -280,16 +294,18 @@ function CategoriesPage() {
                       setSelectedSlug(cat.slug);
                     }}
                     className={cn(
-                      "group relative flex items-center gap-2.5 lg:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl lg:rounded-2xl transition-all duration-150 cursor-pointer shrink-0 lg:shrink text-left w-auto lg:w-full",
+                      "group relative flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 px-2 sm:px-2.5 lg:px-3 py-1.5 sm:py-2 lg:py-2.5 rounded-xl lg:rounded-2xl transition-all duration-150 cursor-pointer text-left w-full",
+                      isHiddenOnMobile ? "hidden lg:flex" : "flex",
+                      itemIndex >= 6 && isMobileExpanded && "animate-in fade-in-50 duration-200 slide-in-from-top-1",
                       isSelected
-                        ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                        : "text-foreground/80 hover:bg-muted/70 hover:text-foreground",
+                        ? "bg-primary text-primary-foreground font-bold shadow-xs ring-1 ring-primary/20"
+                        : "bg-muted/30 hover:bg-muted/70 text-foreground/80 hover:text-foreground border border-border/40 lg:border-transparent",
                     )}
                   >
                     {/* Category Thumbnail / Icon */}
                     <div
                       className={cn(
-                        "w-8 h-8 lg:w-9 lg:h-9 rounded-xl overflow-hidden shrink-0 flex items-center justify-center p-0.5 transition-all",
+                        "w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-lg lg:rounded-xl overflow-hidden shrink-0 flex items-center justify-center p-0.5 transition-all",
                         isSelected
                           ? "ring-1 ring-gold bg-primary-foreground/10"
                           : "bg-muted/70 group-hover:bg-muted border border-border/50",
@@ -300,12 +316,12 @@ function CategoriesPage() {
                           src={cat.image}
                           alt={cat.name}
                           loading="lazy"
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-cover rounded-md lg:rounded-lg"
                         />
                       ) : (
                         <IconComp
                           className={cn(
-                            "w-4 h-4",
+                            "w-3.5 h-3.5 sm:w-4 sm:h-4",
                             isSelected ? "text-gold" : "text-primary/80",
                           )}
                         />
@@ -334,7 +350,7 @@ function CategoriesPage() {
 
                     {/* Mobile Compact Label */}
                     <span
-                      className="lg:hidden text-xs font-semibold whitespace-nowrap truncate max-w-[90px]"
+                      className="lg:hidden text-[11px] sm:text-xs font-semibold whitespace-nowrap truncate flex-1 min-w-0"
                       style={{ fontFamily: "'Tiro Bangla', serif" }}
                     >
                       {cat.bengali.split(" ")[0]}
@@ -363,6 +379,31 @@ function CategoriesPage() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Mobile Expand / Collapse Arrow Toggle Bar */}
+            <div className="lg:hidden border-t border-border/60 bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setIsMobileExpanded((prev) => !prev)}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 text-[11.5px] font-semibold text-muted-foreground hover:text-primary transition-all active:scale-[0.99] cursor-pointer"
+                aria-expanded={isMobileExpanded}
+                aria-label={isMobileExpanded ? "ক্যাটাগরি সংক্ষেপ করুন" : "সব ক্যাটাগরি দেখুন"}
+              >
+                <span>
+                  {isMobileExpanded ? "সংক্ষেপ করুন" : "আরও ৫টি ক্যাটাগরি দেখুন"}
+                </span>
+                <span
+                  className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center transition-transform duration-300",
+                    isMobileExpanded
+                      ? "bg-primary/10 text-primary rotate-180"
+                      : "bg-gold/15 text-gold"
+                  )}
+                >
+                  <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                </span>
+              </button>
             </div>
           </aside>
 

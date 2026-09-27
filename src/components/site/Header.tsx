@@ -450,7 +450,7 @@ export function Header() {
           <SheetOverlay className="bg-primary/30 backdrop-blur-sm" />
           <SheetPrimitive.Content
             className={cn(
-              "fixed inset-y-0 left-0 z-50 h-full w-[85%] sm:w-[60%] md:w-[55%] max-w-md",
+              "fixed inset-y-0 left-0 z-50 h-full w-[88%] sm:w-[380px] max-w-sm",
               "bg-background border-r border-border shadow-2xl",
               "data-[state=open]:animate-in data-[state=closed]:animate-out",
               "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
@@ -459,7 +459,7 @@ export function Header() {
             )}
           >
             {/* Header */}
-            <div className="flex min-h-20 items-center justify-between gap-4 px-6">
+            <div className="flex min-h-20 items-center justify-between gap-4 px-5 sm:px-6">
               <Link to="/" onClick={() => setOpen(false)} className="flex min-w-0 items-center" aria-label="Ibn Mobarak Art Gallery home">
                 {brand.hasCustomLogo && brand.url ? (
                   <img
@@ -496,7 +496,7 @@ export function Header() {
             </div>
 
             {/* Search */}
-            <div className="px-6 py-2">
+            <div className="px-5 sm:px-6 py-2">
               <HeaderSearch
                 isMobile
                 onSelect={() => setOpen(false)}
@@ -504,7 +504,7 @@ export function Header() {
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 overflow-y-auto px-7 pt-10 pb-8">
+            <nav className="flex-1 overflow-y-auto px-5 sm:px-6 pt-3 pb-8">
               {/* Categories first (admin-managed hierarchical tree) */}
               <MobileCategoryMenu onNavigate={() => setOpen(false)} />
 
@@ -559,7 +559,7 @@ export function Header() {
                   >
                     <span className="flex items-center gap-3">
                       <Gift className="w-3.5 h-3.5 text-primary" strokeWidth={1.6} />
-                      Categories (ক্যাটাগরি)
+                      ক্যাটাগরি সমূহ
                     </span>
                     <span className="text-foreground/40 group-hover:text-primary transition-colors">→</span>
                   </Link>
@@ -605,7 +605,7 @@ export function Header() {
             </nav>
 
             {/* Footer */}
-            <div className="px-7 py-6 border-t border-border/60">
+            <div className="px-5 sm:px-6 py-6 border-t border-border/60">
               <div className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-2">
                 Ibn Mobarak Art Gallery · Dhaka
               </div>

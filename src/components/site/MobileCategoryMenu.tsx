@@ -22,6 +22,13 @@ type Props = {
   onNavigate: () => void;
 };
 
+function cleanCategoryLabel(label: string): string {
+  if (!label) return "";
+  // Strip any (English / ASCII in parentheses)
+  const cleaned = label.replace(/\s*\([A-Za-z0-9\s,&/'-]+\)\s*/g, "").trim();
+  return cleaned || label;
+}
+
 export function MobileCategoryMenu({ onNavigate }: Props) {
   const { data: dbTree } = useQuery(activeMenuTreeOptions());
 
@@ -32,7 +39,7 @@ export function MobileCategoryMenu({ onNavigate }: Props) {
       : MASTER_ART_CATEGORIES.map((cat, idx) => ({
           id: cat.id,
           parent_id: null,
-          label: `${cat.bengali} (${cat.name})`,
+          label: cat.bengali || cat.name,
           slug: cat.slug,
           icon: cat.iconName,
           sort_order: idx * 10,
@@ -40,7 +47,7 @@ export function MobileCategoryMenu({ onNavigate }: Props) {
           children: cat.subcategories.map((sub, sIdx) => ({
             id: sub.id,
             parent_id: cat.id,
-            label: `${sub.bengali} (${sub.name})`,
+            label: sub.bengali || sub.name,
             slug: sub.slug,
             icon: null,
             sort_order: sIdx + 1,
@@ -53,7 +60,7 @@ export function MobileCategoryMenu({ onNavigate }: Props) {
     <div className="py-2">
       <div className="flex items-center justify-between mb-3 px-1">
         <span className="text-[10px] uppercase tracking-[0.28em] font-semibold text-accent">
-          ক্যাটাগরি সমূহ (Categories)
+          ক্যাটাগরি সমূহ
         </span>
         <button
           type="button"
@@ -124,14 +131,14 @@ function CategoryRow({
   return (
     <li className="group">
       <div
-        className={`flex items-center justify-between py-2.5 transition-colors ${
+        className={`flex items-center justify-between py-2.5 transition-colors gap-2 ${
           depth === 0 ? "hover:bg-muted/40 px-2 rounded-lg" : "hover:bg-muted/20 pl-6 pr-2 rounded-md"
         }`}
       >
         <button
           type="button"
           onClick={handleRowClick}
-          className="flex-1 flex items-center gap-2.5 text-left select-none"
+          className="flex-1 min-w-0 flex items-center gap-2.5 text-left select-none"
         >
           {depth === 0 && IconComponent && (
             <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -148,18 +155,18 @@ function CategoryRow({
                 : "text-xs text-foreground/80 group-hover:text-foreground"
             }`}
           >
-            {node.label}
+            {cleanCategoryLabel(node.label)}
           </span>
         </button>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {hasChildren ? (
             <>
               <button
                 type="button"
                 onClick={goToCategory}
                 className="px-2 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10 rounded transition-colors"
-                title={`View all in ${node.label}`}
+                title={`View all in ${cleanCategoryLabel(node.label)}`}
               >
                 All
               </button>

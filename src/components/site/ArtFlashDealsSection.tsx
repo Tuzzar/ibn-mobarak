@@ -44,9 +44,6 @@ export function ArtFlashDealsSection() {
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-foreground">
               সীমিত সময়ের বিশেষ ডিসকাউন্ট
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              স্টক শেষ হওয়ার আগেই আপনার পছন্দের আর্ট সামগ্রী সংগ্রহ করুন
-            </p>
           </div>
 
           {/* Right Side: Countdown Timer & View All */}

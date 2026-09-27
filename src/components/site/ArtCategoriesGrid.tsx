@@ -17,9 +17,6 @@ export function ArtCategoriesGrid() {
           <h2 className="text-2xl sm:text-3xl lg:text-[2rem] font-bold font-display text-foreground tracking-tight">
             জনপ্রিয় আর্ট ক্যাটাগরি
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">
-            শিল্পচর্চা, ক্যালিগ্রাফি ও স্কেচিংয়ের প্রতিটি মাধ্যমের জন্য সেরা মানের অথেনটিক সরঞ্জাম
-          </p>
         </div>
 
         <Link
